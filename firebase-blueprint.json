@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "portfolioConfig": {
+      "title": "Portfolio Configuration",
+      "description": "Global portfolio settings customizable by admin",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 200 },
+        "bio": { "type": "string", "maxLength": 1000 },
+        "heroImage": { "type": "string", "maxLength": 1000 },
+        "footerName": { "type": "string", "maxLength": 100 },
+        "footerLogoText": { "type": "string", "maxLength": 50 },
+        "footerImage": { "type": "string", "maxLength": 1000 },
+        "footerCopyright": { "type": "string", "maxLength": 200 },
+        "email": { "type": "string", "maxLength": 200 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "location": { "type": "string", "maxLength": 200 },
+        "githubUrl": { "type": "string", "maxLength": 500 },
+        "linkedinUrl": { "type": "string", "maxLength": 500 },
+        "instagramUrl": { "type": "string", "maxLength": 500 },
+        "twitterUrl": { "type": "string", "maxLength": 500 }
+      }
+    },
+    "project": {
+      "title": "Portfolio Project",
+      "description": "Individual portfolio project item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 100 },
+        "shortDescription": { "type": "string", "maxLength": 500 },
+        "fullDescription": { "type": "string", "maxLength": 2000 },
+        "image": { "type": "string", "maxLength": 1000 },
+        "liveUrl": { "type": "string", "maxLength": 500 },
+        "githubUrl": { "type": "string", "maxLength": 500 }
+      }
+    }
+  },
+  "firestore": {
+    "/settings/config": {
+      "schema": { "$ref": "#/entities/portfolioConfig" },
+      "description": "Main configurable portfolio settings"
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/project" },
+      "description": "Collection of projects"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": { "type": "object" },
+      "description": "Hire requests and inquiries submitted by visitors"
+    },
+    "/admins/{userId}": {
+      "schema": { "type": "object" },
+      "description": "Authorized admin users"
+    }
+  }
+}

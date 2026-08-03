@@ -1,0 +1,620 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc
+} from 'firebase/firestore';
+import {
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  User
+} from 'firebase/auth';
+import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
+import { PROFILE_DATA, PROJECTS_LIST } from '../data/portfolioData';
+import { Project } from '../types';
+import { saveLargeAsset, getLargeAsset, deleteLargeAsset } from '../utils/storageHelper';
+
+export interface PortfolioConfig {
+  theme?: 'dynamic' | 'minimal';
+  colorScheme?: 'default' | 'red_green_black' | 'gold_charcoal' | 'violet_cyan' | 'sunset_crimson' | 'emerald_obsidian';
+  fontFamily?: 'sans' | 'serif' | 'mono' | 'outfit';
+  name: string;
+  title: string;
+  bio: string;
+  heroImage: string;
+  secondaryHeroImage?: string;
+  footerName: string;
+  footerLogoText: string;
+  footerImage: string;
+  footerCopyright: string;
+  email: string;
+  phone: string;
+  location: string;
+  githubUrl: string;
+  linkedinUrl: string;
+  instagramUrl: string;
+  twitterUrl: string;
+  cvPdfUrl?: string;
+  cvFileName?: string;
+  bgMusicUrl?: string;
+  bgMusicFileName?: string;
+  bgMusicEnabled?: boolean;
+  bgMusicVolume?: number;
+  desktopHireVideoUrl?: string;
+  desktopHireVideoFileName?: string;
+  mobileHireVideoUrl?: string;
+  mobileHireVideoFileName?: string;
+  openRouterApiKey?: string;
+  openRouterModel?: string;
+}
+
+const defaultConfig: PortfolioConfig = {
+  theme: 'dynamic',
+  colorScheme: 'default',
+  fontFamily: 'sans',
+  name: PROFILE_DATA.name,
+  title: 'AI DEVELOPER & FREELANCER',
+  bio: 'I build modern Android applications, intelligent AI-powered solutions, responsive websites, and automation tools. Passionate about turning creative ideas into scalable digital products.',
+  heroImage: '',
+  secondaryHeroImage: '',
+  footerName: 'DWIP HALDER',
+  footerLogoText: 'DH',
+  footerImage: '',
+  footerCopyright: `© ${new Date().getFullYear()} DWIP HALDER. All rights reserved.`,
+  email: PROFILE_DATA.email,
+  phone: PROFILE_DATA.phone,
+  location: PROFILE_DATA.location,
+  githubUrl: PROFILE_DATA.github,
+  linkedinUrl: PROFILE_DATA.linkedin,
+  instagramUrl: PROFILE_DATA.instagram,
+  twitterUrl: PROFILE_DATA.twitter,
+  cvPdfUrl: '',
+  cvFileName: 'Dwip_Halder_Resume.pdf',
+  bgMusicUrl: '',
+  bgMusicFileName: '',
+  bgMusicEnabled: true,
+  bgMusicVolume: 0.4,
+  desktopHireVideoUrl: '',
+  desktopHireVideoFileName: '',
+  mobileHireVideoUrl: '',
+  mobileHireVideoFileName: '',
+  openRouterApiKey: '',
+  openRouterModel: 'google/gemini-2.0-flash-lite-001'
+};
+
+export interface AdminAccount {
+  id: string;
+  email: string;
+  pass?: string;
+  role: string;
+  createdAt?: string;
+  lastLogin?: string;
+  fallbackMode?: boolean;
+}
+
+export interface Inquiry {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  serviceType: string;
+  purpose?: string;
+  budget?: string;
+  message: string;
+  status?: 'Pending' | 'In Progress' | 'Accepted' | 'Completed' | 'Rejected';
+  createdAt: string;
+  read?: boolean;
+  notes?: string;
+}
+
+interface PortfolioContextType {
+  config: PortfolioConfig;
+  projects: Project[];
+  adminsList: AdminAccount[];
+  inquiries: Inquiry[];
+  isAdmin: boolean;
+  user: User | null;
+  loading: boolean;
+  saveConfig: (newConfig: PortfolioConfig) => Promise<void>;
+  addProject: (project: Omit<Project, 'id'>) => Promise<void>;
+  updateProject: (id: string, project: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+  registerAdmin: (email: string, pass: string) => Promise<void>;
+  loginAdmin: (email: string, pass: string) => Promise<void>;
+  logoutAdmin: () => Promise<void>;
+  updateAdminPassword: (adminId: string, newPass: string) => Promise<void>;
+  deleteAdminAccount: (adminId: string) => Promise<void>;
+  submitInquiry: (data: Omit<Inquiry, 'id' | 'createdAt' | 'read' | 'status'>) => Promise<void>;
+  deleteInquiry: (id: string) => Promise<void>;
+  toggleInquiryRead: (id: string, currentReadStatus?: boolean) => Promise<void>;
+  updateInquiryStatus: (id: string, status: 'Pending' | 'In Progress' | 'Accepted' | 'Completed' | 'Rejected', notes?: string) => Promise<void>;
+}
+
+const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
+
+export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [config, setConfig] = useState<PortfolioConfig>(defaultConfig);
+  const [projects, setProjects] = useState<Project[]>(PROJECTS_LIST);
+  const [adminsList, setAdminsList] = useState<AdminAccount[]>([]);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    return localStorage.getItem('dwip_admin_active') === 'true';
+  });
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // 1. Listen to Firebase Auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        setIsAdmin(true);
+        localStorage.setItem('dwip_admin_active', 'true');
+      } else {
+        if (!localStorage.getItem('dwip_admin_active')) {
+          setIsAdmin(false);
+        }
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Fetch and listen to Settings Config from Firestore
+  useEffect(() => {
+    const docRef = doc(db, 'settings', 'config');
+
+    const resolveConfigWithLocalAssets = async (data: any): Promise<PortfolioConfig> => {
+      const merged: PortfolioConfig = { ...defaultConfig, ...data };
+      if (merged.heroImage && merged.heroImage.includes('photo-1534528741775-53994a69daeb')) {
+        merged.heroImage = '';
+      }
+
+      if (!merged.bgMusicUrl || merged.bgMusicUrl === 'LOCAL_STORAGE') {
+        const localAudio = await getLargeAsset('bg_music_url');
+        if (localAudio) {
+          merged.bgMusicUrl = localAudio;
+        } else if (merged.bgMusicUrl === 'LOCAL_STORAGE') {
+          merged.bgMusicUrl = '';
+        }
+      }
+
+      if (!merged.cvPdfUrl || merged.cvPdfUrl === 'LOCAL_STORAGE') {
+        const localCv = await getLargeAsset('cv_pdf_url');
+        if (localCv) {
+          merged.cvPdfUrl = localCv;
+        } else if (merged.cvPdfUrl === 'LOCAL_STORAGE') {
+          merged.cvPdfUrl = '';
+        }
+      }
+
+      if (!merged.desktopHireVideoUrl || merged.desktopHireVideoUrl === 'LOCAL_STORAGE') {
+        const localDesktopVid = await getLargeAsset('desktop_hire_video_url');
+        if (localDesktopVid) {
+          merged.desktopHireVideoUrl = localDesktopVid;
+        } else if (merged.desktopHireVideoUrl === 'LOCAL_STORAGE') {
+          merged.desktopHireVideoUrl = '';
+        }
+      }
+
+      if (!merged.mobileHireVideoUrl || merged.mobileHireVideoUrl === 'LOCAL_STORAGE') {
+        const localMobileVid = await getLargeAsset('mobile_hire_video_url');
+        if (localMobileVid) {
+          merged.mobileHireVideoUrl = localMobileVid;
+        } else if (merged.mobileHireVideoUrl === 'LOCAL_STORAGE') {
+          merged.mobileHireVideoUrl = '';
+        }
+      }
+
+      return merged;
+    };
+
+    const initConfig = async () => {
+      try {
+        const snap = await getDoc(docRef);
+        if (!snap.exists()) {
+          await setDoc(docRef, defaultConfig);
+        } else {
+          const processed = await resolveConfigWithLocalAssets(snap.data());
+          setConfig(processed);
+        }
+      } catch (err) {
+        console.warn('Firestore config read offline fallback:', err);
+      }
+    };
+    initConfig();
+
+    const unsub = onSnapshot(
+      docRef,
+      async (snap) => {
+        if (snap.exists()) {
+          const processed = await resolveConfigWithLocalAssets(snap.data());
+          setConfig(processed);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'settings/config');
+      }
+    );
+
+    return () => unsub();
+  }, []);
+
+  // 3. Fetch and listen to Projects collection from Firestore
+  useEffect(() => {
+    const projCol = collection(db, 'projects');
+
+    const unsub = onSnapshot(
+      projCol,
+      async (snap) => {
+        if (snap.empty) {
+          try {
+            for (const proj of PROJECTS_LIST) {
+              const { id, ...data } = proj;
+              await setDoc(doc(db, 'projects', id), data);
+            }
+          } catch (e) {
+            console.warn('Could not populate default projects:', e);
+          }
+        } else {
+          const list: Project[] = snap.docs.map((docSnap) => ({
+            id: docSnap.id,
+            ...(docSnap.data() as Omit<Project, 'id'>)
+          }));
+          setProjects(list);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'projects');
+      }
+    );
+
+    return () => unsub();
+  }, []);
+
+  // 4. Fetch and listen to Admins collection from Firestore
+  useEffect(() => {
+    const adminsCol = collection(db, 'admins');
+    const unsub = onSnapshot(
+      adminsCol,
+      (snap) => {
+        const list: AdminAccount[] = snap.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<AdminAccount, 'id'>)
+        }));
+        setAdminsList(list);
+      },
+      (error) => {
+        console.warn('Admins list read fallback:', error);
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  // 5. Fetch and listen to Inquiries collection from Firestore
+  useEffect(() => {
+    const inquiriesCol = collection(db, 'inquiries');
+    const unsub = onSnapshot(
+      inquiriesCol,
+      (snap) => {
+        const list: Inquiry[] = snap.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<Inquiry, 'id'>)
+        }));
+        // Sort inquiries newest first
+        list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        setInquiries(list);
+      },
+      (error) => {
+        console.warn('Inquiries list read fallback:', error);
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  // Submit Inquiry / Hire Request
+  const submitInquiry = async (data: Omit<Inquiry, 'id' | 'createdAt' | 'read' | 'status'>) => {
+    try {
+      const inquiriesCol = collection(db, 'inquiries');
+      await addDoc(inquiriesCol, {
+        ...data,
+        status: 'Pending',
+        createdAt: new Date().toISOString(),
+        read: false
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'inquiries');
+    }
+  };
+
+  // Delete Inquiry
+  const deleteInquiry = async (id: string) => {
+    try {
+      const docRef = doc(db, 'inquiries', id);
+      await deleteDoc(docRef);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `inquiries/${id}`);
+    }
+  };
+
+  // Toggle Inquiry Read status
+  const toggleInquiryRead = async (id: string, currentReadStatus?: boolean) => {
+    try {
+      const docRef = doc(db, 'inquiries', id);
+      await updateDoc(docRef, {
+        read: !currentReadStatus
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `inquiries/${id}`);
+    }
+  };
+
+  // Update Inquiry Status (Pending, In Progress, Accepted, Completed, Rejected)
+  const updateInquiryStatus = async (id: string, status: 'Pending' | 'In Progress' | 'Accepted' | 'Completed' | 'Rejected', notes?: string) => {
+    try {
+      const docRef = doc(db, 'inquiries', id);
+      const updateData: any = { status };
+      if (notes !== undefined) {
+        updateData.notes = notes;
+      }
+      await updateDoc(docRef, updateData);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `inquiries/${id}`);
+    }
+  };
+
+  // Save config function
+  const saveConfig = async (newConfig: PortfolioConfig) => {
+    try {
+      const docRef = doc(db, 'settings', 'config');
+      const payload: PortfolioConfig = { ...newConfig };
+
+      // Offload large base64 bgMusicUrl (>100KB) to IndexedDB/localStorage
+      if (newConfig.bgMusicUrl) {
+        if (newConfig.bgMusicUrl.startsWith('data:') || newConfig.bgMusicUrl.length > 100000) {
+          await saveLargeAsset('bg_music_url', newConfig.bgMusicUrl);
+          payload.bgMusicUrl = 'LOCAL_STORAGE';
+        }
+      } else {
+        await deleteLargeAsset('bg_music_url');
+        payload.bgMusicUrl = '';
+      }
+
+      // Offload large base64 cvPdfUrl (>100KB) to IndexedDB/localStorage
+      if (newConfig.cvPdfUrl) {
+        if (newConfig.cvPdfUrl.startsWith('data:') || newConfig.cvPdfUrl.length > 100000) {
+          await saveLargeAsset('cv_pdf_url', newConfig.cvPdfUrl);
+          payload.cvPdfUrl = 'LOCAL_STORAGE';
+        }
+      } else {
+        await deleteLargeAsset('cv_pdf_url');
+        payload.cvPdfUrl = '';
+      }
+
+      // Offload large desktopHireVideoUrl (>100KB) to IndexedDB/localStorage
+      if (newConfig.desktopHireVideoUrl) {
+        if (newConfig.desktopHireVideoUrl.startsWith('data:') || newConfig.desktopHireVideoUrl.length > 100000) {
+          await saveLargeAsset('desktop_hire_video_url', newConfig.desktopHireVideoUrl);
+          payload.desktopHireVideoUrl = 'LOCAL_STORAGE';
+        }
+      } else {
+        await deleteLargeAsset('desktop_hire_video_url');
+        payload.desktopHireVideoUrl = '';
+      }
+
+      // Offload large mobileHireVideoUrl (>100KB) to IndexedDB/localStorage
+      if (newConfig.mobileHireVideoUrl) {
+        if (newConfig.mobileHireVideoUrl.startsWith('data:') || newConfig.mobileHireVideoUrl.length > 100000) {
+          await saveLargeAsset('mobile_hire_video_url', newConfig.mobileHireVideoUrl);
+          payload.mobileHireVideoUrl = 'LOCAL_STORAGE';
+        }
+      } else {
+        await deleteLargeAsset('mobile_hire_video_url');
+        payload.mobileHireVideoUrl = '';
+      }
+
+      await setDoc(docRef, payload, { merge: true });
+      setConfig(newConfig);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'settings/config');
+    }
+  };
+
+  // Add project function
+  const addProject = async (projectData: Omit<Project, 'id'>) => {
+    try {
+      const projCol = collection(db, 'projects');
+      await addDoc(projCol, projectData);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'projects');
+    }
+  };
+
+  // Update project function
+  const updateProject = async (id: string, projectData: Partial<Project>) => {
+    try {
+      const projRef = doc(db, 'projects', id);
+      await updateDoc(projRef, projectData);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `projects/${id}`);
+    }
+  };
+
+  // Delete project function
+  const deleteProject = async (id: string) => {
+    try {
+      const projRef = doc(db, 'projects', id);
+      await deleteDoc(projRef);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `projects/${id}`);
+    }
+  };
+
+  // Register Admin account with single-admin limit check
+  const registerAdmin = async (email: string, pass: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanId = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+    const adminDocRef = doc(db, 'admins', cleanId);
+
+    // Strict check: If an admin already exists in adminsList, prevent creating new admin accounts!
+    if (adminsList.length >= 1) {
+      const existing = adminsList.find((a) => a.email.toLowerCase() === cleanEmail);
+      if (existing) {
+        const error = new Error('This email is already registered as Admin. Please switch to "Login Admin".');
+        (error as any).code = 'auth/email-already-in-use';
+        throw error;
+      } else {
+        const error = new Error('Admin registration limit reached! Only 1 Admin account is permitted on this website. Please log in with the existing Admin account.');
+        (error as any).code = 'auth/limit-reached';
+        throw error;
+      }
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
+      const uid = userCredential.user.uid;
+      await setDoc(doc(db, 'admins', cleanId), {
+        uid,
+        email: cleanEmail,
+        pass,
+        role: 'admin',
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+      setIsAdmin(true);
+      localStorage.setItem('dwip_admin_active', 'true');
+    } catch (err: any) {
+      if (err?.code === 'auth/email-already-in-use' || err?.code === 'auth/limit-reached') {
+        throw err;
+      }
+      if (err?.code === 'auth/operation-not-allowed' || err?.message?.includes('network') || err?.code) {
+        console.warn('Firebase Auth fallback: storing admin account directly in Firestore.');
+        await setDoc(adminDocRef, {
+          email: cleanEmail,
+          pass,
+          role: 'admin',
+          fallbackMode: true,
+          createdAt: new Date().toISOString()
+        }, { merge: true });
+        setIsAdmin(true);
+        localStorage.setItem('dwip_admin_active', 'true');
+        return;
+      }
+      throw err;
+    }
+  };
+
+  // Login Admin
+  const loginAdmin = async (email: string, pass: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanId = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+    const adminDocRef = doc(db, 'admins', cleanId);
+
+    try {
+      await signInWithEmailAndPassword(auth, cleanEmail, pass);
+      setIsAdmin(true);
+      localStorage.setItem('dwip_admin_active', 'true');
+      // Update stored pass in Firestore admin record
+      await setDoc(adminDocRef, { email: cleanEmail, pass, role: 'admin', lastLogin: new Date().toISOString() }, { merge: true });
+    } catch (err: any) {
+      if (err?.code === 'auth/wrong-password' || err?.code === 'auth/invalid-credential' || err?.code === 'auth/user-not-found') {
+        const error = new Error('Invalid email or password. Please verify your credentials.');
+        (error as any).code = 'auth/wrong-password';
+        throw error;
+      }
+
+      // Check Firestore doc fallback
+      const snap = await getDoc(adminDocRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.pass && data.pass !== pass) {
+          const error = new Error('Incorrect password. Please try again.');
+          (error as any).code = 'auth/wrong-password';
+          throw error;
+        }
+        // Success
+        await setDoc(adminDocRef, { lastLogin: new Date().toISOString() }, { merge: true });
+        setIsAdmin(true);
+        localStorage.setItem('dwip_admin_active', 'true');
+        return;
+      } else {
+        const error = new Error('No admin account found with this email. Please switch to "Create Admin".');
+        (error as any).code = 'auth/user-not-found';
+        throw error;
+      }
+    }
+  };
+
+  // Logout Admin
+  const logoutAdmin = async () => {
+    await signOut(auth);
+    setIsAdmin(false);
+    localStorage.removeItem('dwip_admin_active');
+  };
+
+  // Update Admin Password in Firestore
+  const updateAdminPassword = async (adminId: string, newPass: string) => {
+    try {
+      const adminDocRef = doc(db, 'admins', adminId);
+      await updateDoc(adminDocRef, {
+        pass: newPass,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `admins/${adminId}`);
+    }
+  };
+
+  // Delete Admin account from Firestore
+  const deleteAdminAccount = async (adminId: string) => {
+    try {
+      const adminDocRef = doc(db, 'admins', adminId);
+      await deleteDoc(adminDocRef);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `admins/${adminId}`);
+    }
+  };
+
+  return (
+    <PortfolioContext.Provider
+      value={{
+        config,
+        projects,
+        adminsList,
+        inquiries,
+        isAdmin,
+        user,
+        loading,
+        saveConfig,
+        addProject,
+        updateProject,
+        deleteProject,
+        registerAdmin,
+        loginAdmin,
+        logoutAdmin,
+        updateAdminPassword,
+        deleteAdminAccount,
+        submitInquiry,
+        deleteInquiry,
+        toggleInquiryRead,
+        updateInquiryStatus
+      }}
+    >
+      {children}
+    </PortfolioContext.Provider>
+  );
+};
+
+export const usePortfolio = () => {
+  const context = useContext(PortfolioContext);
+  if (!context) {
+    throw new Error('usePortfolio must be used within a PortfolioProvider');
+  }
+  return context;
+};

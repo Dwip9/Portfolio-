@@ -1,0 +1,491 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-primary: #080b14;
+    --bg-secondary: #0d1222;
+    --card-bg: rgba(15, 23, 42, 0.6);
+    --card-border: rgba(59, 130, 246, 0.15);
+    --glow-blue: #3b82f6;
+    --glow-purple: #8b5cf6;
+    --glow-cyan: #06b6d4;
+  }
+
+  body {
+    background-color: #080b14;
+    color: #f1f5f9;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+/* Smooth Theme Transition Rules for Key Containers */
+html,
+body,
+header,
+footer,
+.glass-panel,
+.theme-transition {
+  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #080b14;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #60a5fa, #a78bfa);
+  }
+}
+
+/* ===================================================
+   DYNAMIC FONT FAMILIES
+   =================================================== */
+.font-sans-mode {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+}
+.font-serif-mode, .font-serif-mode h1, .font-serif-mode h2, .font-serif-mode h3, .font-serif-mode h4 {
+  font-family: 'Playfair Display', Georgia, serif !important;
+}
+.font-mono-mode, .font-mono-mode h1, .font-mono-mode h2, .font-mono-mode h3, .font-mono-mode h4 {
+  font-family: 'Space Grotesk', 'Fira Code', monospace !important;
+}
+.font-outfit-mode, .font-outfit-mode h1, .font-outfit-mode h2, .font-outfit-mode h3, .font-outfit-mode h4 {
+  font-family: 'Outfit', 'Inter', system-ui, sans-serif !important;
+}
+
+/* ===================================================
+   DYNAMIC COLOR PALETTE SCHEME OVERRIDES
+   =================================================== */
+
+/* 1. RED & BLACK & EMERALD GREEN (red_green_black) */
+.color-scheme-red_green_black {
+  background-color: #040608 !important;
+}
+.color-scheme-red_green_black .text-gradient {
+  background: linear-gradient(135deg, #ef4444 0%, #10b981 50%, #f43f5e 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.color-scheme-red_green_black .btn-glow {
+  background: linear-gradient(135deg, #dc2626 0%, #059669 100%) !important;
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.5) !important;
+}
+.color-scheme-red_green_black .bg-blue-600 {
+  background-color: #dc2626 !important;
+}
+.color-scheme-red_green_black .bg-blue-600:hover {
+  background-color: #b91c1c !important;
+}
+.color-scheme-red_green_black .text-blue-400 {
+  color: #f87171 !important;
+}
+.color-scheme-red_green_black .text-purple-400 {
+  color: #34d399 !important;
+}
+.color-scheme-red_green_black .border-blue-500\/30 {
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+/* 2. GOLD & CHARCOAL LUXURY (gold_charcoal) */
+.color-scheme-gold_charcoal {
+  background-color: #080a10 !important;
+}
+.color-scheme-gold_charcoal .text-gradient {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.color-scheme-gold_charcoal .btn-glow {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+  box-shadow: 0 0 20px rgba(217, 119, 6, 0.5) !important;
+}
+.color-scheme-gold_charcoal .bg-blue-600 {
+  background-color: #d97706 !important;
+}
+.color-scheme-gold_charcoal .bg-blue-600:hover {
+  background-color: #b45309 !important;
+}
+.color-scheme-gold_charcoal .text-blue-400 {
+  color: #fbbf24 !important;
+}
+.color-scheme-gold_charcoal .text-purple-400 {
+  color: #f59e0b !important;
+}
+.color-scheme-gold_charcoal .border-blue-500\/30 {
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+/* 3. VIOLET & NEON CYAN (violet_cyan) */
+.color-scheme-violet_cyan {
+  background-color: #0b0718 !important;
+}
+.color-scheme-violet_cyan .text-gradient {
+  background: linear-gradient(135deg, #c084fc 0%, #06b6d4 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.color-scheme-violet_cyan .btn-glow {
+  background: linear-gradient(135deg, #9333ea 0%, #0891b2 100%) !important;
+  box-shadow: 0 0 20px rgba(147, 51, 234, 0.5) !important;
+}
+.color-scheme-violet_cyan .bg-blue-600 {
+  background-color: #9333ea !important;
+}
+.color-scheme-violet_cyan .text-blue-400 {
+  color: #c084fc !important;
+}
+
+/* 4. SUNSET CRIMSON & AMBER (sunset_crimson) */
+.color-scheme-sunset_crimson {
+  background-color: #12080a !important;
+}
+.color-scheme-sunset_crimson .text-gradient {
+  background: linear-gradient(135deg, #fb923c 0%, #f43f5e 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.color-scheme-sunset_crimson .btn-glow {
+  background: linear-gradient(135deg, #ea580c 0%, #e11d48 100%) !important;
+  box-shadow: 0 0 20px rgba(234, 88, 12, 0.5) !important;
+}
+.color-scheme-sunset_crimson .bg-blue-600 {
+  background-color: #ea580c !important;
+}
+.color-scheme-sunset_crimson .text-blue-400 {
+  color: #fb923c !important;
+}
+
+/* 5. EMERALD MINT & OBSIDIAN (emerald_obsidian) */
+.color-scheme-emerald_obsidian {
+  background-color: #040d0a !important;
+}
+.color-scheme-emerald_obsidian .text-gradient {
+  background: linear-gradient(135deg, #34d399 0%, #22d3ee 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.color-scheme-emerald_obsidian .btn-glow {
+  background: linear-gradient(135deg, #059669 0%, #0891b2 100%) !important;
+  box-shadow: 0 0 20px rgba(5, 150, 105, 0.5) !important;
+}
+.color-scheme-emerald_obsidian .bg-blue-600 {
+  background-color: #059669 !important;
+}
+.color-scheme-emerald_obsidian .text-blue-400 {
+  color: #34d399 !important;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: rgba(13, 18, 34, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-panel-glow {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.15);
+}
+
+.glass-panel-glow:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 35px rgba(139, 92, 246, 0.25);
+}
+
+/* Neon Glow Gradients */
+.neon-border {
+  position: relative;
+}
+.neon-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.5), rgba(139, 92, 246, 0.5), rgba(6, 182, 212, 0.5));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-purple {
+  background: linear-gradient(135deg, #c084fc 0%, #e879f9 50%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-glow {
+  position: relative;
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
+}
+
+.btn-glow:hover {
+  box-shadow: 0 0 30px rgba(124, 58, 237, 0.7);
+  transform: translateY(-2px);
+}
+
+/* Keyframe Animations */
+@keyframes skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer-wave {
+  animation: skeleton-shimmer 1.8s infinite linear;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(3deg);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes reverse-spin-slow {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 7s ease-in-out 2s infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+.animate-reverse-spin {
+  animation: reverse-spin-slow 25s linear infinite;
+}
+
+@keyframes bubble-float-1 {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-8px) scale(1.05); }
+}
+
+@keyframes bubble-float-2 {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(8px) scale(0.96); }
+}
+
+.animate-bubble-1 {
+  animation: bubble-float-1 4s ease-in-out infinite;
+}
+
+.animate-bubble-2 {
+  animation: bubble-float-2 5s ease-in-out infinite 1s;
+}
+
+.animate-bubble-3 {
+  animation: bubble-float-1 4.5s ease-in-out infinite 2s;
+}
+
+/* ===================================================
+   LIGHT MODE THEME OVERRIDES (.theme-light)
+   =================================================== */
+.theme-light {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.theme-light body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.theme-light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.theme-light .glass-panel,
+.theme-light [class*="bg-[#0a0f1d]"],
+.theme-light [class*="bg-[#090d18]"],
+.theme-light [class*="bg-[#090e1a]"],
+.theme-light [class*="bg-[#060912]"],
+.theme-light [class*="bg-[#080b14]"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.08) !important;
+}
+
+.theme-light header,
+.theme-light [class*="bg-[#080b14]/90"] {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light footer {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Text Overrides for Light Mode */
+.theme-light [class*="text-white"],
+.theme-light [class*="text-slate-100"],
+.theme-light [class*="text-slate-200"] {
+  color: #0f172a !important;
+}
+
+.theme-light [class*="text-slate-300"],
+.theme-light [class*="text-slate-400"] {
+  color: #475569 !important;
+}
+
+/* Secondary dark panels to light gray cards */
+.theme-light [class*="bg-slate-900"],
+.theme-light [class*="bg-slate-950"] {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light [class*="border-slate-800"],
+.theme-light [class*="border-slate-700"] {
+  border-color: #e2e8f0 !important;
+}
+
+/* Dark tech bubbles in Hero converted to crisp light badges */
+.theme-light [class*="bg-emerald-950"],
+.theme-light [class*="bg-purple-950"],
+.theme-light [class*="bg-blue-950"],
+.theme-light [class*="bg-cyan-950"],
+.theme-light [class*="bg-amber-950"],
+.theme-light [class*="bg-orange-950"],
+.theme-light [class*="bg-pink-950"],
+.theme-light [class*="bg-indigo-950"] {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08) !important;
+}
+
+.theme-light [class*="text-white"] {
+  color: #0f172a !important;
+}
+
+/* Inputs & Form Fields in Light Mode */
+.theme-light input,
+.theme-light textarea,
+.theme-light select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.theme-light input::placeholder,
+.theme-light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Ensure Chat Bot & Modals look great in Light Mode */
+.theme-light .interactive-chat-window {
+  background-color: #ffffff !important;
+  border-color: #3b82f6 !important;
+}
+
+/* ===================================================
+   WATER DROP RIPPLE & VIEW TRANSITIONS FOR THEME SWITCHING
+   =================================================== */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+@keyframes waterDropRipple {
+  0% {
+    transform: translate3d(-50%, -50%, 0) scale(0);
+    opacity: 0.95;
+  }
+  60% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate3d(-50%, -50%, 0) scale(1);
+    opacity: 0;
+  }
+}
+
+.water-drop-ripple {
+  position: fixed;
+  z-index: 99999;
+  pointer-events: none;
+  width: 250vmax;
+  height: 250vmax;
+  border-radius: 50%;
+  will-change: transform, opacity;
+  animation: waterDropRipple 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
