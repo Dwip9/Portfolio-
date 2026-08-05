@@ -24,7 +24,8 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
     deleteAdminAccount,
     deleteInquiry,
     toggleInquiryRead,
-    updateInquiryStatus
+    updateInquiryStatus,
+    triggerHireVideoBroadcast
   } = usePortfolio();
   
   const [activeTab, setActiveTab] = useState<'theme' | 'general' | 'footer' | 'contact' | 'projects' | 'inquiries' | 'cv' | 'music' | 'video' | 'ai' | 'admins'>('theme');
@@ -1726,7 +1727,7 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center gap-3">
+              <div className="pt-2 flex items-center justify-between gap-3 flex-wrap">
                 <button
                   type="submit"
                   disabled={isSaving}
@@ -1734,6 +1735,18 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
                 >
                   <Save className="w-4 h-4" />
                   <span>{isSaving ? 'Saving...' : 'Save Video Settings'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHireVideoBroadcast('Admin Broadcast Test', 'Live Celebration Demo');
+                    onClose();
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/50 text-purple-200 font-bold text-xs flex items-center gap-2 cursor-pointer shadow-lg"
+                >
+                  <Sparkles className="w-4 h-4 text-purple-300" />
+                  <span>Broadcast Live Video to All Users Now</span>
                 </button>
               </div>
             </form>

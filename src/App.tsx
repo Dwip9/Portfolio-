@@ -21,10 +21,11 @@ import { ProjectPreviewModal } from './components/ProjectPreviewModal';
 import { AdminCMSModal } from './components/AdminCMSModal';
 import { BackgroundMusicPlayer } from './components/BackgroundMusicPlayer';
 import { MinimalThemeView } from './components/MinimalThemeView';
+import { HireVideoOverlay } from './components/HireVideoOverlay';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 function AppContent() {
-  const { config } = usePortfolio();
+  const { config, liveBroadcast, dismissHireVideoBroadcast } = usePortfolio();
   const activeTheme = config.theme || 'dynamic';
   const [currentLang, setCurrentLang] = useState<Language>('EN');
   const [currentTheme, setCurrentTheme] = useState<ThemeMode>('dark');
@@ -330,6 +331,16 @@ function AppContent() {
 
       {/* Persistent Background Music Player */}
       <BackgroundMusicPlayer />
+
+      {/* Live Broadcast Hire Video Overlay across all connected clients/users */}
+      <HireVideoOverlay
+        isOpen={liveBroadcast.active}
+        desktopVideoUrl={config.desktopHireVideoUrl}
+        mobileVideoUrl={config.mobileHireVideoUrl}
+        clientName={liveBroadcast.clientName}
+        purpose={liveBroadcast.purpose}
+        onFinished={dismissHireVideoBroadcast}
+      />
 
     </div>
   );

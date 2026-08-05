@@ -114,6 +114,13 @@ export interface Inquiry {
   notes?: string;
 }
 
+export interface LiveBroadcastState {
+  active: boolean;
+  clientName?: string;
+  purpose?: string;
+  triggeredAt?: number;
+}
+
 interface PortfolioContextType {
   config: PortfolioConfig;
   projects: Project[];
@@ -122,6 +129,9 @@ interface PortfolioContextType {
   isAdmin: boolean;
   user: User | null;
   loading: boolean;
+  liveBroadcast: LiveBroadcastState;
+  triggerHireVideoBroadcast: (clientName?: string, purpose?: string) => Promise<void>;
+  dismissHireVideoBroadcast: () => void;
   saveConfig: (newConfig: PortfolioConfig) => Promise<void>;
   addProject: (project: Omit<Project, 'id'>) => Promise<void>;
   updateProject: (id: string, project: Partial<Project>) => Promise<void>;
@@ -149,6 +159,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return localStorage.getItem('dwip_admin_active') === 'true';
   });
   const [loading, setLoading] = useState<boolean>(true);
+  const [liveBroadcast, setLiveBroadcast] = useState<LiveBroadcastState>({ active: false });
+  const lastHandledBroadcastRef = React.useRef<number>(0);
 
   // 1. Listen to Firebase Auth state
   useEffect(() => {
@@ -319,6 +331,63 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return () => unsub();
   }, []);
 
+  // 6. Listen to live video broadcast triggers in Firestore
+  useEffect(() => {
+    const broadcastRef = doc(db, 'settings', 'broadcast');
+    const unsub = onSnapshot(
+      broadcastRef,
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data && data.triggeredAt && data.triggeredAt > lastHandledBroadcastRef.current) {
+            const now = Date.now();
+            if (now - data.triggeredAt < 120000) {
+              lastHandledBroadcastRef.current = data.triggeredAt;
+              setLiveBroadcast({
+                active: true,
+                clientName: data.clientName || 'A Client',
+                purpose: data.purpose || 'Hire Request',
+                triggeredAt: data.triggeredAt
+              });
+            }
+          }
+        }
+      },
+      (error) => {
+        console.warn('Live broadcast listener error:', error);
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  // Broadcast celebration video to all active site viewers
+  const triggerHireVideoBroadcast = async (clientName: string = 'A Client', purpose: string = 'Hire Request') => {
+    const timestamp = Date.now();
+    lastHandledBroadcastRef.current = timestamp;
+    setLiveBroadcast({
+      active: true,
+      clientName,
+      purpose,
+      triggeredAt: timestamp
+    });
+
+    try {
+      const broadcastRef = doc(db, 'settings', 'broadcast');
+      await setDoc(broadcastRef, {
+        type: 'hire_celebration',
+        triggeredAt: timestamp,
+        clientName,
+        purpose
+      });
+    } catch (err) {
+      console.warn('Firestore broadcast set error:', err);
+    }
+  };
+
+  const dismissHireVideoBroadcast = () => {
+    setLiveBroadcast((prev) => ({ ...prev, active: false }));
+  };
+
   // Submit Inquiry / Hire Request
   const submitInquiry = async (data: Omit<Inquiry, 'id' | 'createdAt' | 'read' | 'status'>) => {
     try {
@@ -329,6 +398,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         createdAt: new Date().toISOString(),
         read: false
       });
+      // Broadcast celebration video live to all site visitors!
+      await triggerHireVideoBroadcast(data.name, data.purpose || data.serviceType);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'inquiries');
     }
@@ -591,6 +662,9 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isAdmin,
         user,
         loading,
+        liveBroadcast,
+        triggerHireVideoBroadcast,
+        dismissHireVideoBroadcast,
         saveConfig,
         addProject,
         updateProject,

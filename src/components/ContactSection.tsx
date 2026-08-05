@@ -3,7 +3,6 @@ import { Mail, Phone, MapPin, Send, Github, Linkedin, Instagram, Twitter, CheckC
 import { Language, Service } from '../types';
 import { usePortfolio } from '../context/PortfolioContext';
 import { soundFX } from '../utils/soundEffects';
-import { HireVideoOverlay } from './HireVideoOverlay';
 
 interface ContactSectionProps {
   currentLang?: Language;
@@ -15,7 +14,6 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ preselectedServi
   const { submitInquiry, inquiries = [], config } = usePortfolio();
 
   const [activeTab, setActiveTab] = useState<'submit' | 'track'>(initialTab);
-  const [showVideoOverlay, setShowVideoOverlay] = useState(false);
   const [lastSubmittedPhone, setLastSubmittedPhone] = useState('');
 
   React.useEffect(() => {
@@ -71,21 +69,15 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ preselectedServi
         message: ''
       });
 
-      // Launch full screen celebration video!
-      setShowVideoOverlay(true);
+      // Prepare track search tab for after celebration video ends
+      setSearchPhone(submittedPhoneNum);
+      setHasSearched(true);
+      setTimeout(() => {
+        setActiveTab('track');
+      }, 5000);
     } catch (err) {
       console.error("Failed to send hire inquiry:", err);
       setIsSending(false);
-    }
-  };
-
-  const handleVideoFinished = () => {
-    setShowVideoOverlay(false);
-    // Auto-navigate to Track Status tab
-    setActiveTab('track');
-    if (lastSubmittedPhone) {
-      setSearchPhone(lastSubmittedPhone);
-      setHasSearched(true);
     }
   };
 
@@ -484,14 +476,6 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ preselectedServi
         </div>
 
       </div>
-
-      {/* Full Screen Celebration Video Overlay upon Hire Request Submission */}
-      <HireVideoOverlay
-        isOpen={showVideoOverlay}
-        desktopVideoUrl={config.desktopHireVideoUrl}
-        mobileVideoUrl={config.mobileHireVideoUrl}
-        onFinished={handleVideoFinished}
-      />
     </section>
   );
 };

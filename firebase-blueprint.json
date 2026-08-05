@@ -43,6 +43,10 @@
       "schema": { "$ref": "#/entities/portfolioConfig" },
       "description": "Main configurable portfolio settings"
     },
+    "/settings/broadcast": {
+      "schema": { "type": "object" },
+      "description": "Live video broadcast trigger for real-time celebration across all users"
+    },
     "/projects/{projectId}": {
       "schema": { "$ref": "#/entities/project" },
       "description": "Collection of projects"

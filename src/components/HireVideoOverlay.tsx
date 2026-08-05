@@ -6,6 +6,8 @@ interface HireVideoOverlayProps {
   isOpen: boolean;
   desktopVideoUrl?: string;
   mobileVideoUrl?: string;
+  clientName?: string;
+  purpose?: string;
   onFinished: () => void;
 }
 
@@ -17,13 +19,13 @@ export const HireVideoOverlay: React.FC<HireVideoOverlayProps> = ({
   isOpen,
   desktopVideoUrl,
   mobileVideoUrl,
+  clientName,
+  purpose,
   onFinished
 }) => {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(60);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -51,11 +53,29 @@ export const HireVideoOverlay: React.FC<HireVideoOverlayProps> = ({
     }, 700);
   };
 
-  // 60-second max cap timer
+  // Auto-play video with audio fallback
   useEffect(() => {
     if (!isOpen) {
       setIsFadingOut(false);
       return;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.muted = false;
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          setIsMuted(false);
+        }).catch((err) => {
+          console.warn('Autoplay with sound restricted by browser, muting initially:', err);
+          if (videoRef.current) {
+            videoRef.current.muted = true;
+            setIsMuted(true);
+            videoRef.current.play().catch(console.error);
+          }
+        });
+      }
     }
 
     const maxTimer = setTimeout(() => {
@@ -64,6 +84,14 @@ export const HireVideoOverlay: React.FC<HireVideoOverlayProps> = ({
 
     return () => clearTimeout(maxTimer);
   }, [isOpen]);
+
+  const toggleSound = () => {
+    if (videoRef.current) {
+      const nextState = !isMuted;
+      videoRef.current.muted = nextState;
+      setIsMuted(nextState);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -86,31 +114,43 @@ export const HireVideoOverlay: React.FC<HireVideoOverlayProps> = ({
         style={{ width: '100vw', height: '100vh', objectFit: 'cover' }}
       />
 
-      {/* Subtle Top Floating Controls (No bottom progress/seconds clutter) */}
-      <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-b from-black/80 via-black/30 to-transparent flex items-center justify-between z-10">
+      {/* Subtle Top Floating Controls & Broadcast Info */}
+      <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/40 animate-pulse">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/40 animate-pulse shrink-0">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-xs sm:text-base font-black text-white flex items-center gap-2">
-              <span>Hire Request Submitted!</span>
+              <span>{clientName ? `🎉 ${clientName} Just Hired Dwip!` : '🎉 Hire Request Submitted!'}</span>
               <Sparkles className="w-4 h-4 text-amber-400" />
             </h3>
-            <p className="text-[10px] sm:text-xs text-slate-300 font-medium">
-              Redirecting to tracking status...
+            <p className="text-[10px] sm:text-xs text-blue-300 font-medium">
+              {purpose ? `Service: ${purpose}` : 'Celebrating new project collaboration!'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Mute / Unmute */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Mute / Unmute Button */}
           <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/80 text-white hover:bg-slate-800 transition-all cursor-pointer backdrop-blur-md"
-            title={isMuted ? 'Unmute' : 'Mute'}
+            onClick={toggleSound}
+            className={`px-3 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition-all cursor-pointer backdrop-blur-md border ${
+              isMuted ? 'bg-amber-500/80 border-amber-400 animate-pulse' : 'bg-slate-900/80 border-slate-700'
+            }`}
+            title={isMuted ? 'Click to Enable Sound' : 'Mute'}
           >
-            {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            {isMuted ? (
+              <>
+                <VolumeX className="w-4 h-4 text-amber-200" />
+                <span className="hidden sm:inline">Enable Sound</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-4 h-4 text-emerald-400" />
+                <span className="hidden sm:inline">Sound On</span>
+              </>
+            )}
           </button>
 
           {/* Skip / Close Button */}
