@@ -195,8 +195,10 @@ export const NewHomepage: React.FC<NewHomepageProps> = ({
   const [showSecondaryImage, setShowSecondaryImage] = useState<boolean>(false);
   const [isImageError, setIsImageError] = useState<boolean>(false);
 
-  const primaryImage = config.heroImage || config.introAvatarUrl || '';
-  const secondaryImage = config.secondaryHeroImage || '';
+  const rawPrimary = config.heroImage || config.introAvatarUrl || '';
+  const primaryImage = (rawPrimary && !rawPrimary.includes('unsplash.com')) ? rawPrimary : '';
+  const rawSecondary = config.secondaryHeroImage || '';
+  const secondaryImage = (rawSecondary && !rawSecondary.includes('unsplash.com')) ? rawSecondary : '';
 
   const currentDisplayImage = showSecondaryImage
     ? (secondaryImage || primaryImage)

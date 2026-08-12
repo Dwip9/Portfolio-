@@ -101,7 +101,7 @@ const defaultConfig: PortfolioConfig = {
   introTagline: 'A Cinematic Journey into Anime Art & Character Design',
   introButtonText: 'ENTER THE ART WORLD',
   introBadge: 'STUDIO',
-  introAvatarUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=600&auto=format&fit=crop', // Anime artist style portrait
+  introAvatarUrl: '',
   introVideoUrl: '',
   introVideoFileName: '',
   openRouterApiKey: '',
@@ -208,8 +208,11 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const resolveConfigWithLocalAssets = async (data: any): Promise<PortfolioConfig> => {
       const merged: PortfolioConfig = { ...defaultConfig, ...data };
-      if (merged.heroImage && merged.heroImage.includes('photo-1534528741775-53994a69daeb')) {
+      if (merged.heroImage && merged.heroImage.includes('unsplash.com')) {
         merged.heroImage = '';
+      }
+      if (merged.introAvatarUrl && merged.introAvatarUrl.includes('unsplash.com')) {
+        merged.introAvatarUrl = '';
       }
       if (!merged.name || merged.name.toLowerCase().includes('dwip')) {
         merged.name = 'Tamanna';

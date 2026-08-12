@@ -28,7 +28,8 @@ export const ArtistIntroOverlay: React.FC<ArtistIntroOverlayProps> = ({ onFinish
   const tagline = config.introTagline || 'A Cinematic Journey into Anime Art & Character Design';
   const buttonText = config.introButtonText || 'ENTER THE ART WORLD';
   const badgeText = config.introBadge || 'STUDIO';
-  const avatarUrl = config.introAvatarUrl || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=600&auto=format&fit=crop';
+  const rawAvatar = config.introAvatarUrl || config.heroImage || '';
+  const avatarUrl = (rawAvatar && !rawAvatar.includes('unsplash.com')) ? rawAvatar : '';
 
   // Screen width detection for responsive video selection
   useEffect(() => {
@@ -193,11 +194,15 @@ export const ArtistIntroOverlay: React.FC<ArtistIntroOverlayProps> = ({ onFinish
         muted={isMuted}
         onClick={() => toggleMute()} // Tap video anywhere to toggle mute cleanly
         onEnded={() => {
-          handleFinishIntro();
+          if (stage === 'video' || stage === 'door_opening') {
+            handleFinishIntro();
+          }
         }}
         onError={() => {
-          console.warn('Video error, proceeding smoothly to website');
-          handleFinishIntro();
+          if (stage === 'video' || stage === 'door_opening') {
+            console.warn('Video error, proceeding smoothly to website');
+            handleFinishIntro();
+          }
         }}
         className={`absolute inset-0 w-full h-full object-cover transition-all duration-[1500ms] ease-out cursor-pointer ${
           stage === 'fading'
@@ -379,13 +384,20 @@ export const ArtistIntroOverlay: React.FC<ArtistIntroOverlayProps> = ({ onFinish
                 >
                   <div className="absolute -inset-2.5 rounded-full bg-gradient-to-r from-amber-400 via-rose-400 to-amber-500 opacity-80 blur-md group-hover:opacity-100 transition-opacity animate-pulse" />
                   
-                  <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full ring-4 ring-amber-400 shadow-2xl overflow-hidden bg-amber-950">
-                    <img
-                      src={avatarUrl}
-                      alt={artistName}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
+                  <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-full ring-4 ring-amber-400 shadow-2xl overflow-hidden bg-amber-950 flex flex-col items-center justify-center">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={artistName}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="w-full h-full skeleton-shimmer flex flex-col items-center justify-center p-3 text-center bg-rose-950/90 text-rose-300">
+                        <Flower2 className="w-8 h-8 text-rose-400 animate-bounce mb-1" />
+                        <span className="text-[10px] font-bold text-rose-200 tracking-wider">Tamanna Art</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="absolute -bottom-2.5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-amber-600 via-amber-700 to-rose-700 text-amber-50 text-[10px] font-black tracking-widest px-4 py-1 rounded-full shadow-lg border border-amber-300 uppercase">
