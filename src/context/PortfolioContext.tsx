@@ -235,14 +235,24 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       for (const item of assetKeys) {
         const val = merged[item.field] as string | undefined;
-        if (!val || val === 'LOCAL_STORAGE' || val === 'CLOUD_STORAGE') {
+        // Check cloud asset if value is empty, marker, or unsplash default
+        if (!val || val === 'LOCAL_STORAGE' || val === 'CLOUD_STORAGE' || (typeof val === 'string' && val.includes('unsplash.com'))) {
           const cloudAsset = await getCloudAsset(item.key);
           if (cloudAsset) {
             (merged[item.field] as any) = cloudAsset;
           } else {
-            (merged[item.field] as any) = '';
+            if (val === 'LOCAL_STORAGE' || val === 'CLOUD_STORAGE') {
+              (merged[item.field] as any) = '';
+            }
           }
         }
+      }
+
+      // Sync heroImage and introAvatarUrl so primary photo displays everywhere
+      if (merged.heroImage && merged.heroImage.length > 50 && (!merged.introAvatarUrl || merged.introAvatarUrl.includes('unsplash.com'))) {
+        merged.introAvatarUrl = merged.heroImage;
+      } else if (merged.introAvatarUrl && merged.introAvatarUrl.length > 50 && !merged.heroImage) {
+        merged.heroImage = merged.introAvatarUrl;
       }
 
       return merged;

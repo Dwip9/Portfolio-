@@ -41,12 +41,45 @@ export const ArtistIntroOverlay: React.FC<ArtistIntroOverlayProps> = ({ onFinish
   }, []);
 
   // Determine active video URL (Mobile 9:16 vs Desktop 16:9)
+  const introVid = config.introVideoUrl && config.introVideoUrl.trim() ? config.introVideoUrl.trim() : '';
   const desktopVid = config.desktopHireVideoUrl && config.desktopHireVideoUrl.trim() ? config.desktopHireVideoUrl.trim() : '';
   const mobileVid = config.mobileHireVideoUrl && config.mobileHireVideoUrl.trim() ? config.mobileHireVideoUrl.trim() : '';
 
-  const activeVideoUrl = isMobile
-    ? (mobileVid || desktopVid || DEFAULT_SAMPLE_MOBILE_VIDEO)
-    : (desktopVid || mobileVid || DEFAULT_SAMPLE_DESKTOP_VIDEO);
+  const rawVideoUrl = isMobile
+    ? (mobileVid || introVid || desktopVid || DEFAULT_SAMPLE_MOBILE_VIDEO)
+    : (desktopVid || introVid || mobileVid || DEFAULT_SAMPLE_DESKTOP_VIDEO);
+
+  const [videoSrc, setVideoSrc] = useState<string>('');
+
+  // Convert Base64 data URL to Blob Object URL for instant smooth video streaming
+  useEffect(() => {
+    if (!rawVideoUrl) return;
+    if (rawVideoUrl.startsWith('data:video/')) {
+      try {
+        const parts = rawVideoUrl.split(',');
+        const mimeMatch = parts[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'video/mp4';
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        setVideoSrc(blobUrl);
+
+        return () => {
+          URL.revokeObjectURL(blobUrl);
+        };
+      } catch (err) {
+        console.warn('Failed to convert base64 video to blob URL:', err);
+        setVideoSrc(rawVideoUrl);
+      }
+    } else {
+      setVideoSrc(rawVideoUrl);
+    }
+  }, [rawVideoUrl]);
 
   // Lock body scrolling while overlay is visible
   useEffect(() => {
@@ -56,12 +89,12 @@ export const ArtistIntroOverlay: React.FC<ArtistIntroOverlayProps> = ({ onFinish
     };
   }, []);
 
-  // Reload video whenever activeVideoUrl changes
+  // Reload video whenever videoSrc changes
   useEffect(() => {
-    if (activeVideoUrl && videoRef.current) {
+    if (videoSrc && videoRef.current) {
       videoRef.current.load();
     }
-  }, [activeVideoUrl]);
+  }, [videoSrc]);
 
   // Handle Mouse Movement for interactive 3D Card Tilt
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -83,38 +116,33 @@ export const ArtistIntroOverlay: React.FC<ArtistIntroOverlayProps> = ({ onFinish
     // 1. Trigger 3D door & card unfold opening stage
     setStage('door_opening');
 
-    // 2. Start playing video behind 3D opening with smooth volume fade-in
+    // 2. Start playing video behind 3D opening
     if (videoRef.current) {
-      videoRef.current.currentTime = 0;
+      try {
+        videoRef.current.currentTime = 0;
+      } catch (e) {
+        // ignore
+      }
       videoRef.current.muted = false;
-      videoRef.current.volume = 0; // start silent for volume fade-in
+      videoRef.current.volume = 1.0;
 
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            // Gradually increase volume from 0 to 1 over 1000ms
-            let startTime: number | null = null;
-            const duration = 1000;
-            const animateVolume = (timestamp: number) => {
-              if (!startTime) startTime = timestamp;
-              const elapsed = timestamp - startTime;
-              const progress = Math.min(elapsed / duration, 1);
-              if (videoRef.current) {
-                videoRef.current.volume = progress;
-              }
-              if (progress < 1 && videoRef.current && !videoRef.current.paused) {
-                requestAnimationFrame(animateVolume);
-              }
-            };
-            requestAnimationFrame(animateVolume);
+            setIsMuted(false);
           })
           .catch((err) => {
             console.warn('Unmuted video playback blocked by browser, falling back to muted play:', err);
             if (videoRef.current) {
               videoRef.current.muted = true;
               setIsMuted(true);
-              videoRef.current.play().catch(console.error);
+              videoRef.current.play().catch((err2) => {
+                console.error('Video play failed completely:', err2);
+                setTimeout(() => {
+                  handleFinishIntro();
+                }, 1200);
+              });
             }
           });
       }
@@ -126,13 +154,13 @@ export const ArtistIntroOverlay: React.FC<ArtistIntroOverlayProps> = ({ onFinish
     }, 1100);
   };
 
-  // Smooth fade-out into website once video completes naturally (3-second recede fade out)
+  // Smooth fade-out into website once video completes naturally
   const handleFinishIntro = () => {
     if (stage === 'fading') return;
     setStage('fading');
     setTimeout(() => {
       onFinished();
-    }, 3000); // 3-second gradual fade out & recede into distance
+    }, 1500); // 1.5s smooth transition to homepage
   };
 
   const toggleMute = (e?: React.MouseEvent) => {
@@ -151,29 +179,27 @@ export const ArtistIntroOverlay: React.FC<ArtistIntroOverlayProps> = ({ onFinish
 
   const content = (
     <div
-      className={`fixed inset-0 z-[999999] bg-black overflow-hidden select-none transition-all duration-[3000ms] ease-out ${
+      className={`fixed inset-0 z-[999999] bg-black overflow-hidden select-none transition-all duration-[1500ms] ease-out ${
         stage === 'fading' ? 'opacity-0 pointer-events-none scale-105' : 'opacity-100 scale-100'
       }`}
       style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0 }}
     >
-      {/* 1. MANDATORY FULLSCREEN EDGE-TO-EDGE VIDEO PLAYER (NO TOP OVERLAYS / NO SKIP BUTTONS) */}
+      {/* 1. MANDATORY FULLSCREEN EDGE-TO-EDGE VIDEO PLAYER */}
       <video
         ref={videoRef}
+        src={videoSrc || DEFAULT_SAMPLE_DESKTOP_VIDEO}
         preload="auto"
         playsInline
+        muted={isMuted}
         onClick={() => toggleMute()} // Tap video anywhere to toggle mute cleanly
         onEnded={() => {
-          if (stage === 'video' || stage === 'door_opening') {
-            handleFinishIntro();
-          }
+          handleFinishIntro();
         }}
         onError={() => {
-          if (stage === 'video' || stage === 'door_opening') {
-            console.warn('Video error, proceeding to website');
-            handleFinishIntro();
-          }
+          console.warn('Video error, proceeding smoothly to website');
+          handleFinishIntro();
         }}
-        className={`absolute inset-0 w-full h-full object-cover transition-all duration-[3000ms] ease-out cursor-pointer ${
+        className={`absolute inset-0 w-full h-full object-cover transition-all duration-[1500ms] ease-out cursor-pointer ${
           stage === 'fading'
             ? 'opacity-0 scale-110 blur-md pointer-events-none'
             : stage === 'door_opening'
@@ -183,26 +209,21 @@ export const ArtistIntroOverlay: React.FC<ArtistIntroOverlayProps> = ({ onFinish
             : 'opacity-0 pointer-events-none'
         }`}
         style={{ width: '100vw', height: '100vh', objectFit: 'cover' }}
-      >
-        <source src={activeVideoUrl} type="video/mp4" />
-        <source src={DEFAULT_SAMPLE_DESKTOP_VIDEO} type="video/mp4" />
-      </video>
+      />
 
-      {/* SUBTLE UNINTRUSIVE SOUND TOGGLE & SKIP BUTTON (ONLY ADMIN CAN SKIP VIDEO INTRO) */}
-      {(stage === 'video' || stage === 'card') && (
+      {/* SUBTLE SOUND TOGGLE & SKIP BUTTON FOR ALL USERS */}
+      {(stage === 'video' || stage === 'door_opening') && (
         <>
-          {/* Top Right Skip Button - ONLY SHOW FOR ADMIN */}
-          {isAdmin && (
-            <div className="absolute top-6 right-6 z-[100] animate-in fade-in duration-300">
-              <button
-                onClick={() => handleFinishIntro()}
-                className="px-4 py-2 rounded-full bg-black/60 hover:bg-rose-600 text-white font-bold text-xs sm:text-sm backdrop-blur-md border border-white/20 shadow-xl transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>Skip Video / Intro</span>
-                <span>➔</span>
-              </button>
-            </div>
-          )}
+          {/* Top Right Skip Button */}
+          <div className="absolute top-6 right-6 z-[100] animate-in fade-in duration-300">
+            <button
+              onClick={() => handleFinishIntro()}
+              className="px-4 py-2 rounded-full bg-black/60 hover:bg-rose-600 text-white font-bold text-xs sm:text-sm backdrop-blur-md border border-white/20 shadow-xl transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Skip Video</span>
+              <span>➔</span>
+            </button>
+          </div>
 
           {/* Bottom Right Mute Button */}
           {stage === 'video' && (

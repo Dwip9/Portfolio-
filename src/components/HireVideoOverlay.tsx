@@ -44,6 +44,38 @@ export const HireVideoOverlay: React.FC<HireVideoOverlayProps> = ({
     ? (mobileVideoUrl || desktopVideoUrl || DEFAULT_MOBILE_VIDEO)
     : (desktopVideoUrl || mobileVideoUrl || DEFAULT_DESKTOP_VIDEO);
 
+  const [videoSrc, setVideoSrc] = useState<string>('');
+
+  // Convert Base64 data URL to Blob Object URL for fast smooth video playback
+  useEffect(() => {
+    if (!activeVideoSrc) return;
+    if (activeVideoSrc.startsWith('data:video/')) {
+      try {
+        const parts = activeVideoSrc.split(',');
+        const mimeMatch = parts[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'video/mp4';
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        setVideoSrc(blobUrl);
+
+        return () => {
+          URL.revokeObjectURL(blobUrl);
+        };
+      } catch (err) {
+        console.warn('Failed to convert base64 video to blob URL in HireVideoOverlay:', err);
+        setVideoSrc(activeVideoSrc);
+      }
+    } else {
+      setVideoSrc(activeVideoSrc);
+    }
+  }, [activeVideoSrc]);
+
   // Handle Fade out & finish trigger
   const handleFinished = () => {
     if (isFadingOut) return;
@@ -105,6 +137,7 @@ export const HireVideoOverlay: React.FC<HireVideoOverlayProps> = ({
       {/* Background Video Player - Seamless Full Screen Cover */}
       <video
         ref={videoRef}
+        src={videoSrc || DEFAULT_DESKTOP_VIDEO}
         autoPlay
         playsInline
         muted={isMuted}
@@ -115,10 +148,7 @@ export const HireVideoOverlay: React.FC<HireVideoOverlayProps> = ({
         }}
         className="w-full h-full object-cover absolute inset-0"
         style={{ width: '100vw', height: '100vh', objectFit: 'cover' }}
-      >
-        <source src={activeVideoSrc} type="video/mp4" />
-        <source src={DEFAULT_DESKTOP_VIDEO} type="video/mp4" />
-      </video>
+      />
 
       {/* Subtle Top Floating Controls & Broadcast Info */}
       <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center justify-between z-10">

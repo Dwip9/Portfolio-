@@ -46,6 +46,10 @@ export async function getCloudAsset(key: string): Promise<string | null> {
   // 1. Check local IndexedDB cache first
   const local = await getLargeAsset(key);
   if (local) {
+    // Background sync check to ensure Firestore Cloud Media DB has this asset for Netlify & external domain visitors
+    syncLocalAssetToCloud(key, local).catch((err) => {
+      console.warn(`Background cloud sync warning for '${key}':`, err);
+    });
     return local;
   }
 
@@ -84,6 +88,41 @@ export async function getCloudAsset(key: string): Promise<string | null> {
   }
 
   return null;
+}
+
+// Background sync helper: Ensures local assets exist in Firestore cloud DB so Netlify visitors get the photo
+async function syncLocalAssetToCloud(key: string, value: string): Promise<void> {
+  if (!value || value.length < 50) return;
+  try {
+    const mainDocRef = doc(db, 'media', key);
+    const snap = await getDoc(mainDocRef);
+    if (!snap.exists()) {
+      console.log(`Syncing local asset '${key}' to Firestore cloud storage...`);
+      if (value.length <= CHUNK_SIZE) {
+        await setDoc(mainDocRef, {
+          chunksCount: 1,
+          data: value,
+          updatedAt: Date.now()
+        });
+      } else {
+        const chunksCount = Math.ceil(value.length / CHUNK_SIZE);
+        await setDoc(mainDocRef, {
+          chunksCount,
+          data: 'CHUNKED',
+          updatedAt: Date.now()
+        });
+
+        for (let i = 0; i < chunksCount; i++) {
+          const chunkStr = value.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+          const chunkDocRef = doc(db, 'media', `${key}_chunk_${i}`);
+          await setDoc(chunkDocRef, { chunk: chunkStr });
+        }
+      }
+      console.log(`Successfully synced local asset '${key}' to Firestore Cloud Storage!`);
+    }
+  } catch (err) {
+    console.warn(`Failed background sync for '${key}':`, err);
+  }
 }
 
 export async function deleteCloudAsset(key: string): Promise<void> {
