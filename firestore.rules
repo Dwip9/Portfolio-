@@ -17,6 +17,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Media collection for photos, videos, assets
+    match /media/{mediaId} {
+      allow read, write: if true;
+    }
+
     // Inquiries collection
     match /inquiries/{inquiryId} {
       allow read, write: if true;

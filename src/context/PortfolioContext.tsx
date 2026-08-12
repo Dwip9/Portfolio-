@@ -19,7 +19,7 @@ import {
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { PROFILE_DATA, PROJECTS_LIST } from '../data/portfolioData';
 import { Project } from '../types';
-import { saveLargeAsset, getLargeAsset, deleteLargeAsset } from '../utils/storageHelper';
+import { saveCloudAsset, getCloudAsset, deleteCloudAsset } from '../utils/cloudStorage';
 
 export interface PortfolioConfig {
   theme?: 'dynamic' | 'minimal';
@@ -176,7 +176,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    return localStorage.getItem('dwip_admin_active') === 'true';
+    return sessionStorage.getItem('art_admin_active') === 'true';
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [liveBroadcast, setLiveBroadcast] = useState<LiveBroadcastState>({ active: false });
@@ -184,13 +184,16 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // 1. Listen to Firebase Auth state
   useEffect(() => {
+    // Clear old permanent localStorage keys so random visitors aren't logged in as admin
+    localStorage.removeItem('dwip_admin_active');
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
         setIsAdmin(true);
-        localStorage.setItem('dwip_admin_active', 'true');
+        sessionStorage.setItem('art_admin_active', 'true');
       } else {
-        if (!localStorage.getItem('dwip_admin_active')) {
+        if (sessionStorage.getItem('art_admin_active') !== 'true') {
           setIsAdmin(false);
         }
       }
@@ -232,11 +235,11 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       for (const item of assetKeys) {
         const val = merged[item.field] as string | undefined;
-        if (!val || val === 'LOCAL_STORAGE') {
-          const localAsset = await getLargeAsset(item.key);
-          if (localAsset) {
-            (merged[item.field] as any) = localAsset;
-          } else if (val === 'LOCAL_STORAGE') {
+        if (!val || val === 'LOCAL_STORAGE' || val === 'CLOUD_STORAGE') {
+          const cloudAsset = await getCloudAsset(item.key);
+          if (cloudAsset) {
+            (merged[item.field] as any) = cloudAsset;
+          } else {
             (merged[item.field] as any) = '';
           }
         }
@@ -297,11 +300,11 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             snap.docs.map(async (docSnap) => {
               const data = docSnap.data() as Omit<Project, 'id'>;
               let image = data.image;
-              if (!image || image === 'LOCAL_STORAGE') {
-                const localImg = await getLargeAsset(`proj_${docSnap.id}_image`);
-                if (localImg) {
-                  image = localImg;
-                } else if (image === 'LOCAL_STORAGE') {
+              if (!image || image === 'LOCAL_STORAGE' || image === 'CLOUD_STORAGE') {
+                const cloudImg = await getCloudAsset(`proj_${docSnap.id}_image`);
+                if (cloudImg) {
+                  image = cloudImg;
+                } else if (image === 'LOCAL_STORAGE' || image === 'CLOUD_STORAGE') {
                   image = 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800';
                 }
               }
@@ -494,23 +497,25 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       for (const item of assetKeys) {
         const val = newConfig[item.field] as string | undefined;
         if (val) {
-          if (val.startsWith('data:') || val.length > 50000) {
-            await saveLargeAsset(item.key, val);
-            (payload[item.field] as any) = 'LOCAL_STORAGE';
+          if (val.startsWith('data:') || val.length > 20000) {
+            await saveCloudAsset(item.key, val);
+            (payload[item.field] as any) = 'CLOUD_STORAGE';
+          } else {
+            (payload[item.field] as any) = val;
           }
         } else {
-          await deleteLargeAsset(item.key);
+          await deleteCloudAsset(item.key);
           (payload[item.field] as any) = '';
         }
       }
 
-      // Safety check: Offload ANY other string property in payload if > 50KB or data:
+      // Safety check: Offload ANY other string property in payload if > 20KB or data:
       for (const key of Object.keys(payload) as Array<keyof PortfolioConfig>) {
         const val = payload[key];
-        if (typeof val === 'string' && (val.startsWith('data:') || val.length > 50000)) {
-          console.warn(`Offloading large string field '${key}' to IndexedDB`);
-          await saveLargeAsset(`asset_${key}`, val);
-          (payload[key] as any) = 'LOCAL_STORAGE';
+        if (typeof val === 'string' && (val.startsWith('data:') || val.length > 20000)) {
+          console.warn(`Offloading large string field '${key}' to Cloud Storage`);
+          await saveCloudAsset(`asset_${key}`, val);
+          (payload[key] as any) = 'CLOUD_STORAGE';
         }
       }
 
@@ -526,12 +531,20 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const projCol = collection(db, 'projects');
       const payload = { ...projectData };
-      if (payload.image && (payload.image.startsWith('data:') || payload.image.length > 50000)) {
-        const tempId = `new_${Date.now()}`;
-        await saveLargeAsset(`proj_${tempId}_image`, payload.image);
-        payload.image = 'LOCAL_STORAGE';
+      const tempId = `proj_new_${Date.now()}`;
+      if (payload.image && (payload.image.startsWith('data:') || payload.image.length > 20000)) {
+        await saveCloudAsset(`proj_${tempId}_image`, payload.image);
+        payload.image = 'CLOUD_STORAGE';
       }
-      await addDoc(projCol, payload);
+      const docRef = await addDoc(projCol, payload);
+      // Migrate asset key if needed
+      if (payload.image === 'CLOUD_STORAGE') {
+        const fullImg = await getCloudAsset(`proj_${tempId}_image`);
+        if (fullImg) {
+          await saveCloudAsset(`proj_${docRef.id}_image`, fullImg);
+          await deleteCloudAsset(`proj_${tempId}_image`);
+        }
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'projects');
     }
@@ -542,9 +555,9 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const projRef = doc(db, 'projects', id);
       const payload = { ...projectData };
-      if (payload.image && (payload.image.startsWith('data:') || payload.image.length > 50000)) {
-        await saveLargeAsset(`proj_${id}_image`, payload.image);
-        payload.image = 'LOCAL_STORAGE';
+      if (payload.image && (payload.image.startsWith('data:') || payload.image.length > 20000)) {
+        await saveCloudAsset(`proj_${id}_image`, payload.image);
+        payload.image = 'CLOUD_STORAGE';
       }
       await updateDoc(projRef, payload);
     } catch (error) {
@@ -556,6 +569,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const deleteProject = async (id: string) => {
     try {
       const projRef = doc(db, 'projects', id);
+      await deleteCloudAsset(`proj_${id}_image`);
       await deleteDoc(projRef);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `projects/${id}`);
@@ -593,7 +607,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         createdAt: new Date().toISOString()
       }, { merge: true });
       setIsAdmin(true);
-      localStorage.setItem('dwip_admin_active', 'true');
+      sessionStorage.setItem('art_admin_active', 'true');
     } catch (err: any) {
       if (err?.code === 'auth/email-already-in-use' || err?.code === 'auth/limit-reached') {
         throw err;
@@ -608,7 +622,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           createdAt: new Date().toISOString()
         }, { merge: true });
         setIsAdmin(true);
-        localStorage.setItem('dwip_admin_active', 'true');
+        sessionStorage.setItem('art_admin_active', 'true');
         return;
       }
       throw err;
@@ -624,7 +638,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       await signInWithEmailAndPassword(auth, cleanEmail, pass);
       setIsAdmin(true);
-      localStorage.setItem('dwip_admin_active', 'true');
+      sessionStorage.setItem('art_admin_active', 'true');
       // Update stored pass in Firestore admin record
       await setDoc(adminDocRef, { email: cleanEmail, pass, role: 'admin', lastLogin: new Date().toISOString() }, { merge: true });
     } catch (err: any) {
@@ -646,7 +660,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // Success
         await setDoc(adminDocRef, { lastLogin: new Date().toISOString() }, { merge: true });
         setIsAdmin(true);
-        localStorage.setItem('dwip_admin_active', 'true');
+        sessionStorage.setItem('art_admin_active', 'true');
         return;
       } else {
         const error = new Error('No admin account found with this email. Please switch to "Create Admin".');
@@ -660,6 +674,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const logoutAdmin = async () => {
     await signOut(auth);
     setIsAdmin(false);
+    sessionStorage.removeItem('art_admin_active');
     localStorage.removeItem('dwip_admin_active');
   };
 
@@ -667,8 +682,9 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const setAdminActiveDirectly = (active: boolean = true) => {
     setIsAdmin(active);
     if (active) {
-      localStorage.setItem('dwip_admin_active', 'true');
+      sessionStorage.setItem('art_admin_active', 'true');
     } else {
+      sessionStorage.removeItem('art_admin_active');
       localStorage.removeItem('dwip_admin_active');
     }
   };

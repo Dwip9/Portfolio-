@@ -190,12 +190,10 @@ export const NewHomepage: React.FC<NewHomepageProps> = ({
 
   // Hero avatar & flower convergence states
   const heroAvatarRef = React.useRef<HTMLDivElement | null>(null);
-  const heroImageInputRef = React.useRef<HTMLInputElement | null>(null);
   const [flowerAnimState, setFlowerAnimState] = useState<'idle' | 'glowing' | 'converging' | 'shattering'>('idle');
   const [avatarCenterPoint, setAvatarCenterPoint] = useState<{ x: number; y: number } | null>(null);
   const [showSecondaryImage, setShowSecondaryImage] = useState<boolean>(false);
   const [isImageError, setIsImageError] = useState<boolean>(false);
-  const [adminPromptModalOpen, setAdminPromptModalOpen] = useState<boolean>(false);
 
   const primaryImage = config.heroImage || config.introAvatarUrl || '';
   const secondaryImage = config.secondaryHeroImage || '';
@@ -239,41 +237,6 @@ export const NewHomepage: React.FC<NewHomepageProps> = ({
     setTimeout(() => {
       setFlowerAnimState('idle');
     }, 1550);
-  };
-
-  const handleUploadButtonClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isAdmin) {
-      // Require Admin login/authentication
-      setAdminPromptModalOpen(true);
-    } else {
-      // Admin is active, trigger file upload
-      heroImageInputRef.current?.click();
-    }
-  };
-
-  const handleHeroImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 15 * 1024 * 1024) {
-      alert('Please select an image file under 15MB.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
-      if (base64) {
-        if (showSecondaryImage) {
-          await saveConfig({ ...config, secondaryHeroImage: base64 });
-        } else {
-          await saveConfig({ ...config, heroImage: base64, introAvatarUrl: base64 });
-        }
-        setIsImageError(false);
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   const isDark = currentTheme === 'dark';
@@ -557,13 +520,6 @@ export const NewHomepage: React.FC<NewHomepageProps> = ({
           
           {/* Left Column: Large Prominent Circular Avatar Photo */}
           <div className="md:col-span-5 flex justify-center md:justify-start relative z-10">
-            <input
-              ref={heroImageInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleHeroImageFileChange}
-            />
 
             <div className="relative w-56 h-56 sm:w-64 sm:h-64 lg:w-80 lg:h-80 shrink-0 group">
               
@@ -588,19 +544,11 @@ export const NewHomepage: React.FC<NewHomepageProps> = ({
                       <Flower2 className="w-8 h-8" />
                     </div>
                     <span className="text-xs font-bold text-rose-500 dark:text-rose-300">
-                      Skeleton Loading
+                      Tamanna Artfolio
                     </span>
                     <span className="text-[10px] text-stone-600 dark:text-rose-200/70 mt-0.5">
-                      No picture uploaded yet
+                      Digital Artist & Visual Storyteller
                     </span>
-                    <button
-                      type="button"
-                      onClick={handleUploadButtonClick}
-                      className="mt-3 px-3.5 py-1.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload Photo</span>
-                    </button>
                   </div>
                 ) : (
                   <div className="relative w-full h-full">
@@ -627,21 +575,8 @@ export const NewHomepage: React.FC<NewHomepageProps> = ({
                 )}
               </div>
 
-              {/* Direct "Change / Upload Photo" Button Badge (Bottom Right) */}
+              {/* Paintbrush Palette Badge (Bottom Right) */}
               <div className="absolute bottom-2 right-2 flex items-center gap-2 z-20">
-                <button
-                  type="button"
-                  onClick={handleUploadButtonClick}
-                  className="bg-rose-500 hover:bg-rose-600 text-white p-2.5 sm:p-3 rounded-full shadow-xl border-2 border-white dark:border-rose-900 transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center gap-1.5 group/btn"
-                  title="Upload & Change Picture"
-                >
-                  <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                  <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover/btn:max-w-xs transition-all duration-300 text-xs font-bold pl-0.5">
-                    {isAdmin ? 'Change Photo (Admin)' : 'Change Photo'}
-                  </span>
-                </button>
-
-                {/* Paintbrush Palette Badge */}
                 <div className="bg-white/90 dark:bg-rose-900/90 backdrop-blur-md p-2.5 sm:p-3 rounded-full shadow-xl border border-rose-200 dark:border-rose-800">
                   <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500" />
                 </div>
@@ -1488,53 +1423,6 @@ export const NewHomepage: React.FC<NewHomepageProps> = ({
           <p>© {new Date().getFullYear()} All rights reserved.</p>
         </div>
       </footer>
-
-      {/* Admin Authorization Required Modal */}
-      {adminPromptModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
-            <div className="flex items-center gap-3 text-amber-400">
-              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-                <ShieldCheck className="w-6 h-6 text-amber-400" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white">অ্যাডমিন পারমিশন প্রয়োজন (Admin Required)</h3>
-                <p className="text-xs text-amber-300/80">Only Portfolio Admin can change photos</p>
-              </div>
-            </div>
-
-            <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 text-xs text-slate-300 leading-relaxed space-y-2">
-              <p className="font-semibold text-rose-300">
-                🔒 পোর্টিফোলিও ছবি পরিবর্তনের পারমিশন:
-              </p>
-              <p>
-                সাধারণ ইউজার বা ভিজিটর সরাসরি পোর্টিফোলিও ওনারের ছবি পরিবর্তন করতে পারবেন না। পোর্টিফোলিও ফটো পরিবর্তন বা ক্রপ করার জন্য দয়া করে <strong>অ্যাডমিন সিএমএস (Admin CMS)</strong> প্যানেলে লগইন করুন।
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setAdminPromptModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-all cursor-pointer"
-              >
-                বন্ধ করুন (Close)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAdminPromptModalOpen(false);
-                  onOpenAdminCMS();
-                }}
-                className="px-5 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs shadow-md shadow-rose-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>অ্যাডমিন লগইন (Admin Login)</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );
