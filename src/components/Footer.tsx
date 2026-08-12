@@ -58,12 +58,12 @@ export const Footer: React.FC<FooterProps> = () => {
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm text-white shadow-md ${
                 isMinimal ? 'bg-gradient-to-r from-pink-600 to-rose-600 shadow-pink-600/30' : 'bg-blue-600 shadow-blue-600/30'
               }`}>
-                {config.footerLogoText || 'DH'}
+                {config.footerLogoText || 'TA'}
               </div>
             )}
 
             <p className="font-medium text-slate-400">
-              {config.footerCopyright || `© ${new Date().getFullYear()} DWIP HALDER. All rights reserved.`}
+              {config.footerCopyright || `© ${new Date().getFullYear()} TAMANNA ARTFOLIO. All rights reserved.`}
             </p>
           </div>
 

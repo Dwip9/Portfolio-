@@ -28,7 +28,7 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
     triggerHireVideoBroadcast
   } = usePortfolio();
   
-  const [activeTab, setActiveTab] = useState<'theme' | 'general' | 'footer' | 'contact' | 'projects' | 'inquiries' | 'cv' | 'music' | 'video' | 'ai' | 'admins'>('theme');
+  const [activeTab, setActiveTab] = useState<'video' | 'projects' | 'admins'>('video');
   const [inquirySearch, setInquirySearch] = useState('');
   const [formData, setFormData] = useState<PortfolioConfig>(config);
   const [isSaving, setIsSaving] = useState(false);
@@ -117,7 +117,7 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
     if (!file) return;
 
     if (file.size > 100 * 1024 * 1024) {
-      alert('Desktop video file size must be under 100MB (ভিডিওর সাইজ 100MB এর নিচে হতে হবে)।');
+      alert('Desktop video file size must be under 100MB.');
       return;
     }
 
@@ -138,7 +138,7 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
     if (!file) return;
 
     if (file.size > 100 * 1024 * 1024) {
-      alert('Mobile video file size must be under 100MB (ভিডিওর সাইজ 100MB এর নিচে হতে হবে)।');
+      alert('Mobile video file size must be under 100MB.');
       return;
     }
 
@@ -163,7 +163,7 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
 
   const handleCropComplete = (croppedBase64: string) => {
     if (cropperField === 'heroImage') {
-      setFormData((prev) => ({ ...prev, heroImage: croppedBase64 }));
+      setFormData((prev) => ({ ...prev, heroImage: croppedBase64, introAvatarUrl: croppedBase64 }));
     } else if (cropperField === 'secondaryHeroImage') {
       setFormData((prev) => ({ ...prev, secondaryHeroImage: croppedBase64 }));
     } else if (cropperField === 'footerImage') {
@@ -289,143 +289,39 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 p-3 bg-slate-900/60 border-b border-white/5 overflow-x-auto shrink-0 no-scrollbar">
           <button
-            onClick={() => setActiveTab('theme')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'theme'
-                ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Palette className="w-4 h-4 text-pink-300" />
-            <span>Website Theme</span>
-            <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-pink-500/30 text-pink-200 border border-pink-400/40 font-black uppercase">
-              {formData.theme === 'minimal' ? 'Minimalist' : 'Dynamic'}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('general')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'general'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Layout className="w-4 h-4" />
-            <span>Hero & Profile</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('footer')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'footer'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <ImageIcon className="w-4 h-4" />
-            <span>Footer & Logo</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('contact')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'contact'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Globe className="w-4 h-4" />
-            <span>Contact & Links</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('projects')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'projects'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Edit3 className="w-4 h-4" />
-            <span>Projects ({projects.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('inquiries')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap relative ${
-              activeTab === 'inquiries'
-                ? 'bg-amber-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Inbox className="w-4 h-4 text-amber-300" />
-            <span>Hire Requests ({inquiries.length})</span>
-            {inquiries.filter((i) => !i.read).length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 text-[9px] font-black rounded-full bg-red-500 text-white animate-pulse">
-                {inquiries.filter((i) => !i.read).length} new
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('cv')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'cv'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <FileText className="w-4 h-4 text-emerald-300" />
-            <span>Upload CV / PDF</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('music')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'music'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Music className="w-4 h-4 text-indigo-300" />
-            <span>Background Music</span>
-          </button>
-
-          <button
             onClick={() => setActiveTab('video')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'video'
-                ? 'bg-rose-600 text-white shadow-md'
+                ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 ring-2 ring-rose-400'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
             <Video className="w-4 h-4 text-rose-300" />
-            <span>Hire Fullscreen Videos</span>
+            <span>🎬 Videos & Entrance Intro</span>
           </button>
 
           <button
-            onClick={() => setActiveTab('ai')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'ai'
-                ? 'bg-cyan-600 text-white shadow-md'
+            onClick={() => setActiveTab('projects')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'projects'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 ring-2 ring-blue-400'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <Bot className="w-4 h-4 text-cyan-300" />
-            <span>AI Bot & OpenRouter</span>
+            <Edit3 className="w-4 h-4 text-blue-300" />
+            <span>💼 Projects ({projects.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab('admins')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'admins'
-                ? 'bg-purple-600 text-white shadow-md'
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 ring-2 ring-purple-400'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
             <Users className="w-4 h-4 text-purple-300" />
-            <span>Admins ({adminsList.length})</span>
+            <span>🔑 Admin Password ({adminsList.length})</span>
           </button>
         </div>
 
@@ -868,7 +764,7 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
                     name="footerName"
                     value={formData.footerName}
                     onChange={handleChange}
-                    placeholder="DWIP HALDER"
+                    placeholder="TAMANNA"
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
@@ -1323,7 +1219,7 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
                   <ul className="list-disc list-inside space-y-1 text-[11px] text-slate-400">
                     <li>When users ask questions in the floating robot chat, it will wait for a 2-second thinking period and play a sound effect.</li>
                     <li>If OpenRouter API Key is set above, queries are sent directly to OpenRouter.</li>
-                    <li>If the API Key is empty or invalid, the bot automatically falls back to local intelligent answers and informs users about Dwip Halder's work.</li>
+                    <li>If the API Key is empty or invalid, the bot automatically falls back to local intelligent answers and informs users about Tamanna's work.</li>
                   </ul>
                 </div>
               </div>
@@ -1578,18 +1474,135 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
             </form>
           )}
 
-          {/* 8. HIRE FULLSCREEN VIDEOS TAB */}
+          {/* 8. INTRO SCREEN & VIDEOS TAB */}
           {activeTab === 'video' && (
             <form onSubmit={handleSaveConfig} className="space-y-6">
+              {/* SECTION A: JAPANESE SAKURA & ANIME ART INTRO SCREEN */}
+              <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-950/60 via-rose-950/40 to-purple-950/60 border border-amber-500/40 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300">
+                      <Sparkles className="w-5 h-5 text-amber-300" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-white flex items-center gap-2">
+                        <span>🌸 Anime Art & Sakura Entrance Screen</span>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-200 border border-amber-400/30 text-[10px] font-mono">Mobile-Friendly</span>
+                      </h3>
+                      <p className="text-xs text-amber-200/80">
+                        First screen visitors see with Japanese Sakura paper canvas, door-opening stage transition, and full-screen video showcase!
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.enableIntroScreen ?? true}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, enableIntroScreen: e.target.checked }))}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                    <span className="ml-2 text-xs font-bold text-amber-200">Enable Intro Screen</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-amber-300 mb-1">Artist Name (Default: Tamanna)</label>
+                    <input
+                      type="text"
+                      name="introArtistName"
+                      value={formData.introArtistName || ''}
+                      onChange={handleChange}
+                      placeholder="Tamanna"
+                      className="w-full bg-slate-950 border border-amber-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-amber-300 mb-1">Badge Text (Default: STUDIO)</label>
+                    <input
+                      type="text"
+                      name="introBadge"
+                      value={formData.introBadge || ''}
+                      onChange={handleChange}
+                      placeholder="STUDIO"
+                      className="w-full bg-slate-950 border border-amber-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-amber-300 mb-1">Eyebrow Tag (Default: ✨ WELCOME TO THE ARTIST'S WORLD)</label>
+                    <input
+                      type="text"
+                      name="introEyebrow"
+                      value={formData.introEyebrow || ''}
+                      onChange={handleChange}
+                      placeholder="✨ WELCOME TO THE ARTIST'S WORLD"
+                      className="w-full bg-slate-950 border border-amber-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-amber-300 mb-1">Button Text (Default: ENTER THE ART WORLD)</label>
+                    <input
+                      type="text"
+                      name="introButtonText"
+                      value={formData.introButtonText || ''}
+                      onChange={handleChange}
+                      placeholder="ENTER THE ART WORLD"
+                      className="w-full bg-slate-950 border border-amber-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-[11px] font-bold text-amber-300 mb-1">Tagline / Subtitle</label>
+                    <input
+                      type="text"
+                      name="introTagline"
+                      value={formData.introTagline || ''}
+                      onChange={handleChange}
+                      placeholder="A Cinematic Journey into Anime Art & Character Design"
+                      className="w-full bg-slate-950 border border-amber-500/30 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  {/* Intro Avatar Photo */}
+                  <div className="md:col-span-2 p-3 rounded-2xl bg-slate-950/70 border border-amber-500/20 space-y-2">
+                    <label className="block text-[11px] font-bold text-amber-300">Artist Avatar Photo URL</label>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full ring-2 ring-amber-400 overflow-hidden shrink-0 bg-slate-900">
+                        <img
+                          src={formData.introAvatarUrl || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=600&auto=format&fit=crop'}
+                          alt="Artist Avatar"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        name="introAvatarUrl"
+                        value={formData.introAvatarUrl || ''}
+                        onChange={handleChange}
+                        placeholder="https://images.unsplash.com/..."
+                        className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION B: UNIFIED RESPONSIVE VIDEO SHOWCASE (DESKTOP & MOBILE) */}
               <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/30 flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-rose-600/30 border border-rose-400/50 flex items-center justify-center text-rose-400">
                     <Video className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white">Hire Request Fullscreen Video Settings</h3>
+                    <h3 className="text-sm font-bold text-white">Responsive Showcase & Celebration Videos</h3>
                     <p className="text-xs text-rose-300/80">
-                      Upload 16:9 (Desktop) and 9:16 (Mobile) celebration videos shown on full screen after hire submission.
+                      These Desktop & Mobile videos play automatically during the <strong>Japanese Entrance Stage</strong> AND during <strong>Hire Me Celebration Broadcasts</strong>!
                     </p>
                   </div>
                 </div>
@@ -1599,13 +1612,13 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
               <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-300 space-y-1">
                 <p className="font-bold text-amber-400 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4" />
-                  <span>Video Feature Specifications:</span>
+                  <span>Responsive Video Playback Logic:</span>
                 </p>
                 <ul className="list-disc list-inside text-[11px] text-slate-400 space-y-1 pl-1">
-                  <li><strong>Responsive Selection:</strong> On Mobile screens (&lt;768px), the 9:16 portrait video runs full screen. On Desktop (&ge;768px), the 16:9 landscape video runs full screen.</li>
-                  <li><strong>Smooth Transitions:</strong> The video starts with a smooth fade-in animation and ends with a fade-out animation.</li>
-                  <li><strong>Auto Tracking Redirect:</strong> After max 60 seconds (or when video ends/skipped), it automatically switches to the Track Request Status tab with the client's phone number auto-searched.</li>
-                  <li><strong>Size Limit:</strong> File sizes must be under <strong>100MB</strong> each (stored securely in browser IndexedDB).</li>
+                  <li><strong>Desktop Devices (&ge;768px):</strong> Plays your uploaded 16:9 Landscape Video in crisp full-screen.</li>
+                  <li><strong>Mobile Devices (&lt;768px):</strong> Plays your uploaded 9:16 Portrait Video in vertical full-screen.</li>
+                  <li><strong>Smooth Transitions:</strong> Video fades in smoothly behind Japanese split doors with audio ramp-up, and slowly fades out revealing your website.</li>
+                  <li><strong>Size Limit:</strong> Files up to <strong>100MB</strong> each are saved reliably in browser IndexedDB without hitting Firestore limits.</li>
                 </ul>
               </div>
 

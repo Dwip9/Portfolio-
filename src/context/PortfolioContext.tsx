@@ -51,6 +51,16 @@ export interface PortfolioConfig {
   desktopHireVideoFileName?: string;
   mobileHireVideoUrl?: string;
   mobileHireVideoFileName?: string;
+  // Japanese Sakura & Digital Art Intro Screen Config
+  enableIntroScreen?: boolean;
+  introArtistName?: string;
+  introEyebrow?: string;
+  introTagline?: string;
+  introButtonText?: string;
+  introBadge?: string;
+  introAvatarUrl?: string;
+  introVideoUrl?: string;
+  introVideoFileName?: string;
   openRouterApiKey?: string;
   openRouterModel?: string;
 }
@@ -60,14 +70,14 @@ const defaultConfig: PortfolioConfig = {
   colorScheme: 'default',
   fontFamily: 'sans',
   name: PROFILE_DATA.name,
-  title: 'AI DEVELOPER & FREELANCER',
-  bio: 'I build modern Android applications, intelligent AI-powered solutions, responsive websites, and automation tools. Passionate about turning creative ideas into scalable digital products.',
+  title: 'DIGITAL ARTIST & ANIME CHARACTER DESIGNER',
+  bio: 'I specialize in digital illustration, anime concept art, character design, and visual storytelling. Turning imagination into breathtaking digital artwork.',
   heroImage: '',
   secondaryHeroImage: '',
-  footerName: 'DWIP HALDER',
-  footerLogoText: 'DH',
+  footerName: 'TAMANNA',
+  footerLogoText: 'TA',
   footerImage: '',
-  footerCopyright: `© ${new Date().getFullYear()} DWIP HALDER. All rights reserved.`,
+  footerCopyright: `© ${new Date().getFullYear()} Tamanna Artfolio. All rights reserved.`,
   email: PROFILE_DATA.email,
   phone: PROFILE_DATA.phone,
   location: PROFILE_DATA.location,
@@ -76,15 +86,24 @@ const defaultConfig: PortfolioConfig = {
   instagramUrl: PROFILE_DATA.instagram,
   twitterUrl: PROFILE_DATA.twitter,
   cvPdfUrl: '',
-  cvFileName: 'Dwip_Halder_Resume.pdf',
+  cvFileName: 'Tamanna_Art_Portfolio.pdf',
   bgMusicUrl: '',
   bgMusicFileName: '',
-  bgMusicEnabled: true,
+  bgMusicEnabled: false,
   bgMusicVolume: 0.4,
   desktopHireVideoUrl: '',
   desktopHireVideoFileName: '',
   mobileHireVideoUrl: '',
   mobileHireVideoFileName: '',
+  enableIntroScreen: true,
+  introArtistName: 'Tamanna',
+  introEyebrow: '✨ WELCOME TO THE ARTIST\'S WORLD',
+  introTagline: 'A Cinematic Journey into Anime Art & Character Design',
+  introButtonText: 'ENTER THE ART WORLD',
+  introBadge: 'STUDIO',
+  introAvatarUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=600&auto=format&fit=crop', // Anime artist style portrait
+  introVideoUrl: '',
+  introVideoFileName: '',
   openRouterApiKey: '',
   openRouterModel: 'google/gemini-2.0-flash-lite-001'
 };
@@ -139,6 +158,7 @@ interface PortfolioContextType {
   registerAdmin: (email: string, pass: string) => Promise<void>;
   loginAdmin: (email: string, pass: string) => Promise<void>;
   logoutAdmin: () => Promise<void>;
+  setAdminActiveDirectly: (active?: boolean) => void;
   updateAdminPassword: (adminId: string, newPass: string) => Promise<void>;
   deleteAdminAccount: (adminId: string) => Promise<void>;
   submitInquiry: (data: Omit<Inquiry, 'id' | 'createdAt' | 'read' | 'status'>) => Promise<void>;
@@ -188,40 +208,37 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (merged.heroImage && merged.heroImage.includes('photo-1534528741775-53994a69daeb')) {
         merged.heroImage = '';
       }
-
-      if (!merged.bgMusicUrl || merged.bgMusicUrl === 'LOCAL_STORAGE') {
-        const localAudio = await getLargeAsset('bg_music_url');
-        if (localAudio) {
-          merged.bgMusicUrl = localAudio;
-        } else if (merged.bgMusicUrl === 'LOCAL_STORAGE') {
-          merged.bgMusicUrl = '';
-        }
+      if (!merged.name || merged.name.toLowerCase().includes('dwip')) {
+        merged.name = 'Tamanna';
+      }
+      if (!merged.footerName || merged.footerName.toLowerCase().includes('dwip')) {
+        merged.footerName = 'TAMANNA';
+      }
+      if (!merged.introArtistName || merged.introArtistName.toLowerCase().includes('dwip')) {
+        merged.introArtistName = 'Tamanna';
       }
 
-      if (!merged.cvPdfUrl || merged.cvPdfUrl === 'LOCAL_STORAGE') {
-        const localCv = await getLargeAsset('cv_pdf_url');
-        if (localCv) {
-          merged.cvPdfUrl = localCv;
-        } else if (merged.cvPdfUrl === 'LOCAL_STORAGE') {
-          merged.cvPdfUrl = '';
-        }
-      }
+      const assetKeys: Array<{ field: keyof PortfolioConfig; key: string }> = [
+        { field: 'bgMusicUrl', key: 'bg_music_url' },
+        { field: 'cvPdfUrl', key: 'cv_pdf_url' },
+        { field: 'desktopHireVideoUrl', key: 'desktop_hire_video_url' },
+        { field: 'mobileHireVideoUrl', key: 'mobile_hire_video_url' },
+        { field: 'introVideoUrl', key: 'intro_video_url' },
+        { field: 'heroImage', key: 'hero_image' },
+        { field: 'secondaryHeroImage', key: 'secondary_hero_image' },
+        { field: 'footerImage', key: 'footer_image' },
+        { field: 'introAvatarUrl', key: 'intro_avatar_url' },
+      ];
 
-      if (!merged.desktopHireVideoUrl || merged.desktopHireVideoUrl === 'LOCAL_STORAGE') {
-        const localDesktopVid = await getLargeAsset('desktop_hire_video_url');
-        if (localDesktopVid) {
-          merged.desktopHireVideoUrl = localDesktopVid;
-        } else if (merged.desktopHireVideoUrl === 'LOCAL_STORAGE') {
-          merged.desktopHireVideoUrl = '';
-        }
-      }
-
-      if (!merged.mobileHireVideoUrl || merged.mobileHireVideoUrl === 'LOCAL_STORAGE') {
-        const localMobileVid = await getLargeAsset('mobile_hire_video_url');
-        if (localMobileVid) {
-          merged.mobileHireVideoUrl = localMobileVid;
-        } else if (merged.mobileHireVideoUrl === 'LOCAL_STORAGE') {
-          merged.mobileHireVideoUrl = '';
+      for (const item of assetKeys) {
+        const val = merged[item.field] as string | undefined;
+        if (!val || val === 'LOCAL_STORAGE') {
+          const localAsset = await getLargeAsset(item.key);
+          if (localAsset) {
+            (merged[item.field] as any) = localAsset;
+          } else if (val === 'LOCAL_STORAGE') {
+            (merged[item.field] as any) = '';
+          }
         }
       }
 
@@ -276,10 +293,25 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             console.warn('Could not populate default projects:', e);
           }
         } else {
-          const list: Project[] = snap.docs.map((docSnap) => ({
-            id: docSnap.id,
-            ...(docSnap.data() as Omit<Project, 'id'>)
-          }));
+          const list: Project[] = await Promise.all(
+            snap.docs.map(async (docSnap) => {
+              const data = docSnap.data() as Omit<Project, 'id'>;
+              let image = data.image;
+              if (!image || image === 'LOCAL_STORAGE') {
+                const localImg = await getLargeAsset(`proj_${docSnap.id}_image`);
+                if (localImg) {
+                  image = localImg;
+                } else if (image === 'LOCAL_STORAGE') {
+                  image = 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800';
+                }
+              }
+              return {
+                id: docSnap.id,
+                ...data,
+                image
+              };
+            })
+          );
           setProjects(list);
         }
       },
@@ -447,48 +479,39 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const docRef = doc(db, 'settings', 'config');
       const payload: PortfolioConfig = { ...newConfig };
 
-      // Offload large base64 bgMusicUrl (>100KB) to IndexedDB/localStorage
-      if (newConfig.bgMusicUrl) {
-        if (newConfig.bgMusicUrl.startsWith('data:') || newConfig.bgMusicUrl.length > 100000) {
-          await saveLargeAsset('bg_music_url', newConfig.bgMusicUrl);
-          payload.bgMusicUrl = 'LOCAL_STORAGE';
+      const assetKeys: Array<{ field: keyof PortfolioConfig; key: string }> = [
+        { field: 'bgMusicUrl', key: 'bg_music_url' },
+        { field: 'cvPdfUrl', key: 'cv_pdf_url' },
+        { field: 'desktopHireVideoUrl', key: 'desktop_hire_video_url' },
+        { field: 'mobileHireVideoUrl', key: 'mobile_hire_video_url' },
+        { field: 'introVideoUrl', key: 'intro_video_url' },
+        { field: 'heroImage', key: 'hero_image' },
+        { field: 'secondaryHeroImage', key: 'secondary_hero_image' },
+        { field: 'footerImage', key: 'footer_image' },
+        { field: 'introAvatarUrl', key: 'intro_avatar_url' },
+      ];
+
+      for (const item of assetKeys) {
+        const val = newConfig[item.field] as string | undefined;
+        if (val) {
+          if (val.startsWith('data:') || val.length > 50000) {
+            await saveLargeAsset(item.key, val);
+            (payload[item.field] as any) = 'LOCAL_STORAGE';
+          }
+        } else {
+          await deleteLargeAsset(item.key);
+          (payload[item.field] as any) = '';
         }
-      } else {
-        await deleteLargeAsset('bg_music_url');
-        payload.bgMusicUrl = '';
       }
 
-      // Offload large base64 cvPdfUrl (>100KB) to IndexedDB/localStorage
-      if (newConfig.cvPdfUrl) {
-        if (newConfig.cvPdfUrl.startsWith('data:') || newConfig.cvPdfUrl.length > 100000) {
-          await saveLargeAsset('cv_pdf_url', newConfig.cvPdfUrl);
-          payload.cvPdfUrl = 'LOCAL_STORAGE';
+      // Safety check: Offload ANY other string property in payload if > 50KB or data:
+      for (const key of Object.keys(payload) as Array<keyof PortfolioConfig>) {
+        const val = payload[key];
+        if (typeof val === 'string' && (val.startsWith('data:') || val.length > 50000)) {
+          console.warn(`Offloading large string field '${key}' to IndexedDB`);
+          await saveLargeAsset(`asset_${key}`, val);
+          (payload[key] as any) = 'LOCAL_STORAGE';
         }
-      } else {
-        await deleteLargeAsset('cv_pdf_url');
-        payload.cvPdfUrl = '';
-      }
-
-      // Offload large desktopHireVideoUrl (>100KB) to IndexedDB/localStorage
-      if (newConfig.desktopHireVideoUrl) {
-        if (newConfig.desktopHireVideoUrl.startsWith('data:') || newConfig.desktopHireVideoUrl.length > 100000) {
-          await saveLargeAsset('desktop_hire_video_url', newConfig.desktopHireVideoUrl);
-          payload.desktopHireVideoUrl = 'LOCAL_STORAGE';
-        }
-      } else {
-        await deleteLargeAsset('desktop_hire_video_url');
-        payload.desktopHireVideoUrl = '';
-      }
-
-      // Offload large mobileHireVideoUrl (>100KB) to IndexedDB/localStorage
-      if (newConfig.mobileHireVideoUrl) {
-        if (newConfig.mobileHireVideoUrl.startsWith('data:') || newConfig.mobileHireVideoUrl.length > 100000) {
-          await saveLargeAsset('mobile_hire_video_url', newConfig.mobileHireVideoUrl);
-          payload.mobileHireVideoUrl = 'LOCAL_STORAGE';
-        }
-      } else {
-        await deleteLargeAsset('mobile_hire_video_url');
-        payload.mobileHireVideoUrl = '';
       }
 
       await setDoc(docRef, payload, { merge: true });
@@ -502,7 +525,13 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const addProject = async (projectData: Omit<Project, 'id'>) => {
     try {
       const projCol = collection(db, 'projects');
-      await addDoc(projCol, projectData);
+      const payload = { ...projectData };
+      if (payload.image && (payload.image.startsWith('data:') || payload.image.length > 50000)) {
+        const tempId = `new_${Date.now()}`;
+        await saveLargeAsset(`proj_${tempId}_image`, payload.image);
+        payload.image = 'LOCAL_STORAGE';
+      }
+      await addDoc(projCol, payload);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'projects');
     }
@@ -512,7 +541,12 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const updateProject = async (id: string, projectData: Partial<Project>) => {
     try {
       const projRef = doc(db, 'projects', id);
-      await updateDoc(projRef, projectData);
+      const payload = { ...projectData };
+      if (payload.image && (payload.image.startsWith('data:') || payload.image.length > 50000)) {
+        await saveLargeAsset(`proj_${id}_image`, payload.image);
+        payload.image = 'LOCAL_STORAGE';
+      }
+      await updateDoc(projRef, payload);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `projects/${id}`);
     }
@@ -629,6 +663,16 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     localStorage.removeItem('dwip_admin_active');
   };
 
+  // Directly Set Admin Active (via Secret Code)
+  const setAdminActiveDirectly = (active: boolean = true) => {
+    setIsAdmin(active);
+    if (active) {
+      localStorage.setItem('dwip_admin_active', 'true');
+    } else {
+      localStorage.removeItem('dwip_admin_active');
+    }
+  };
+
   // Update Admin Password in Firestore
   const updateAdminPassword = async (adminId: string, newPass: string) => {
     try {
@@ -672,6 +716,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         registerAdmin,
         loginAdmin,
         logoutAdmin,
+        setAdminActiveDirectly,
         updateAdminPassword,
         deleteAdminAccount,
         submitInquiry,

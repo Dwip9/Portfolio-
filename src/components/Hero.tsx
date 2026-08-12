@@ -138,7 +138,7 @@ export const Hero: React.FC<HeroProps> = ({ onHireMeClick, onNavigatePage }) => 
 
             {/* Uppercase Name */}
             <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-white tracking-tight leading-none uppercase">
-              {config.name || 'DWIP HALDER'}
+              {config.name || 'TAMANNA'}
             </h1>
 
             {/* Role / Title */}
@@ -270,7 +270,7 @@ export const Hero: React.FC<HeroProps> = ({ onHireMeClick, onNavigatePage }) => 
                     <div className="absolute inset-0 w-full h-full rounded-full overflow-hidden bg-[#090e1a] border-2 border-blue-400/40 shadow-2xl flex items-center justify-center [backface-visibility:hidden]">
                       <SkeletonImage
                         src={config.heroImage}
-                        alt={config.name || 'DWIP HALDER'}
+                        alt={config.name || 'TAMANNA'}
                         containerClassName="w-full h-full rounded-full"
                         className="w-full h-full object-cover object-center filter contrast-105"
                         referrerPolicy="no-referrer"
@@ -290,7 +290,7 @@ export const Hero: React.FC<HeroProps> = ({ onHireMeClick, onNavigatePage }) => 
                     <div className="absolute inset-0 w-full h-full rounded-full overflow-hidden bg-[#0b0f20] border-2 border-purple-400/60 shadow-2xl flex items-center justify-center [backface-visibility:hidden] [transform:rotateY(180deg)]">
                       <SkeletonImage
                         src={config.secondaryHeroImage || config.heroImage}
-                        alt={`${config.name || 'DWIP HALDER'} - Secondary`}
+                        alt={`${config.name || 'TAMANNA'} - Secondary`}
                         containerClassName="w-full h-full rounded-full"
                         className="w-full h-full object-cover object-center filter contrast-105"
                         referrerPolicy="no-referrer"

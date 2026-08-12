@@ -17,9 +17,9 @@ export const ResumeModal: React.FC<ResumeModalProps> = ({ isOpen, onClose }) => 
   const handleCopy = () => {
     const text = `
 ========================================
-RESUME - DWIP HALDER
-College Student | AI Freelancer | Developer
-Location: West Bengal, India
+RESUME - TAMANNA
+Digital Artist | 3D Visual Creator | Character Designer
+Location: Kolkata, West Bengal, India
 Email: ${PROFILE_DATA.email}
 Phone: ${PROFILE_DATA.phone}
 ========================================
@@ -51,7 +51,7 @@ EXPERIENCE:
     if (config.cvPdfUrl && config.cvPdfUrl.trim() !== '') {
       const link = document.createElement("a");
       link.href = config.cvPdfUrl;
-      link.download = config.cvFileName || "Dwip_Halder_Resume.pdf";
+      link.download = config.cvFileName || "Tamanna_Resume.pdf";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -61,29 +61,27 @@ EXPERIENCE:
     // Fallback: Generate text blob resume file
     const element = document.createElement("a");
     const file = new Blob([`
-DWIP HALDER - RESUME
-B.A. English Honours (1st Year) | AI Freelancer | Android APK & Web Developer
+TAMANNA - RESUME
+Digital Artist | 3D Visual Creator | Character Designer
 Email: ${config.email || PROFILE_DATA.email}
 Phone: ${config.phone || PROFILE_DATA.phone}
 Location: ${config.location || PROFILE_DATA.location}
 
 SUMMARY:
-Passionate developer and college student specializing in AI-assisted software development, native/cross-platform Android application development (APK), responsive website development, and UI/UX design.
+Passionate Digital Artist and 3D Visual Creator specializing in anime character design, 3D environment art, digital illustration, and visual storytelling.
 
-ACADEMIC QUALIFICATIONS:
-1. B.A. English Honours - 1st Year (Currently Studying)
-2. Computer Diploma - Completed
-3. Higher Secondary (HS) - Completed
-4. Secondary Education (Madhyamik) - Completed
+QUALIFICATIONS:
+1. Fine Arts & Digital Design Diploma
+2. 3D Environment Design Certification
+3. Digital Character Design Certification
 
-TECHNICAL SKILLS:
-- Mobile: Android Development, APK Building, Firebase
-- Web: React, TypeScript, JavaScript, HTML5, CSS3, Tailwind CSS
-- AI: Gemini API, ChatGPT, Python Automation, AI Bots
-- Tools: VS Code, Cursor AI, GitHub, Figma
+SKILLS & ARTISTRY:
+- 3D Modeling: Blender, ZBrush, Maya, 3D Environments
+- Digital Art: Character Design, Concept Art, Illustration, Anime Art
+- Tools: Photoshop, Procreate, Substance Painter
     `], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
-    element.download = config.cvFileName || "Dwip_Halder_Resume.txt";
+    element.download = config.cvFileName || "Tamanna_Resume.txt";
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
@@ -95,20 +93,20 @@ TECHNICAL SKILLS:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl max-h-[90vh] glass-panel rounded-3xl border border-blue-500/30 shadow-[0_25px_60px_rgba(0,0,0,0.9)] flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-3xl max-h-[90vh] glass-panel rounded-3xl border border-rose-500/30 shadow-[0_25px_60px_rgba(0,0,0,0.9)] flex flex-col overflow-hidden">
         
         {/* Header */}
-        <div className="p-6 bg-gradient-to-r from-blue-950 via-indigo-950 to-purple-950 border-b border-white/10 flex items-center justify-between">
+        <div className="p-6 bg-gradient-to-r from-rose-950 via-pink-950 to-purple-950 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-blue-500/20 border border-blue-400/40">
-              <FileText className="w-6 h-6 text-cyan-400" />
+            <div className="p-3 rounded-2xl bg-rose-500/20 border border-rose-400/40">
+              <FileText className="w-6 h-6 text-rose-400" />
             </div>
             <div>
               <h3 className="text-xl font-black text-white flex items-center gap-2">
-                Dwip Halder — Official Curriculum Vitae
+                Tamanna — Official Art Portfolio CV
               </h3>
               <p className="text-xs text-slate-300">
-                Verified Portfolio & Qualifications Summary
+                Verified Art Portfolio & Qualifications Summary
               </p>
             </div>
           </div>
@@ -127,9 +125,9 @@ TECHNICAL SKILLS:
           {/* Identity & Header */}
           <div className="p-6 rounded-2xl glass-panel border border-white/10 flex flex-col sm:flex-row justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-black text-white">DWIP HALDER</h2>
-              <p className="text-sm font-bold text-blue-400 mt-1">
-                College Student • AI Freelancer • APK & Web Developer
+              <h2 className="text-3xl font-black text-white">TAMANNA</h2>
+              <p className="text-sm font-bold text-rose-400 mt-1">
+                Digital Artist • 3D Visual Creator • Anime Character Designer
               </p>
               <p className="text-xs text-slate-400 mt-2 max-w-lg leading-relaxed">
                 Building modern Android applications, intelligent AI-powered solutions, responsive websites, and automation tools.

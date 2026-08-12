@@ -34,7 +34,7 @@ export const AboutMe: React.FC<AboutMeProps> = () => {
 
               <div className="text-slate-300 text-sm leading-relaxed space-y-3 font-normal">
                 <p>
-                  My name is Dwip Halder. I am currently pursuing B.A. English Honours (1st Year). I have completed both Secondary (Madhyamik) and Higher Secondary education. I also hold a Computer Diploma.
+                  My name is Tamanna. I am a passionate Digital Artist, 3D Visual Creator, and Anime Character Designer.
                 </p>
                 <p>
                   I specialize in AI-assisted software development, Android application development, website development, UI design, and modern web technologies. I enjoy solving problems and continuously learning new skills.

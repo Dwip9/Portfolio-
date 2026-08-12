@@ -13,6 +13,7 @@ interface NavbarProps {
   activePage: string;
   onNavigatePage: (page: string) => void;
   onOpenAdminCMS?: () => void;
+  onReplayIntro?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -21,7 +22,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenResumeModal,
   activePage,
   onNavigatePage,
-  onOpenAdminCMS
+  onOpenAdminCMS,
+  onReplayIntro
 }) => {
   const { config, isAdmin } = usePortfolio();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -73,12 +75,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-sm text-white shadow-md group-hover:scale-105 transition-transform shrink-0 ${
                 isMinimal ? 'bg-gradient-to-br from-pink-500 to-rose-600 shadow-pink-600/30' : 'bg-blue-600 shadow-blue-600/30'
               }`}>
-                {config.footerLogoText || 'DH'}
+                {config.footerLogoText || 'TA'}
               </div>
             )}
             <div className="flex flex-col">
               <span className="text-sm sm:text-base font-black text-white tracking-wider uppercase leading-none">
-                {config.name || 'DWIP HALDER'}
+                {config.name || 'TAMANNA'}
               </span>
               <span className={`text-[10px] font-bold tracking-wider uppercase mt-0.5 ${
                 isMinimal ? 'text-pink-400' : 'text-blue-400'
@@ -123,6 +125,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <ShieldCheck className="w-4 h-4 text-cyan-200 animate-pulse" />
                 <span className="hidden sm:inline">Admin Panel</span>
+              </button>
+            )}
+
+            {onReplayIntro && config.enableIntroScreen !== false && (
+              <button
+                onClick={onReplayIntro}
+                className="px-2.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer hover:scale-105"
+                title="Watch Japanese Sakura Intro Stage"
+              >
+                <span>🌸</span>
+                <span className="hidden lg:inline text-[11px]">Intro Stage</span>
               </button>
             )}
 

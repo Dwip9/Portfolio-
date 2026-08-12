@@ -196,7 +196,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ preselectedServi
           <div className="flex items-center justify-between flex-wrap gap-4 border-b border-slate-800 pb-4 mb-6">
             <div>
               <h3 className="text-xl font-black text-white flex items-center gap-2">
-                <span>{activeTab === 'submit' ? 'Hire Dwip / Project Request' : 'Check Request Status'}</span>
+                <span>{activeTab === 'submit' ? 'Hire Tamanna / Project Request' : 'Check Request Status'}</span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
                 {activeTab === 'submit'

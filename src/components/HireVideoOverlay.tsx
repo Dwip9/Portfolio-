@@ -12,8 +12,8 @@ interface HireVideoOverlayProps {
 }
 
 // Futuristic default fallback video stream URLs if none uploaded by admin yet
-const DEFAULT_DESKTOP_VIDEO = 'https://assets.mixkit.co/videos/preview/mixkit-cyber-punk-city-at-night-41566-large.mp4';
-const DEFAULT_MOBILE_VIDEO = 'https://assets.mixkit.co/videos/preview/mixkit-cyber-punk-city-at-night-41566-large.mp4';
+const DEFAULT_DESKTOP_VIDEO = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+const DEFAULT_MOBILE_VIDEO = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
 
 export const HireVideoOverlay: React.FC<HireVideoOverlayProps> = ({
   isOpen,
@@ -105,14 +105,20 @@ export const HireVideoOverlay: React.FC<HireVideoOverlayProps> = ({
       {/* Background Video Player - Seamless Full Screen Cover */}
       <video
         ref={videoRef}
-        src={activeVideoSrc}
         autoPlay
         playsInline
         muted={isMuted}
         onEnded={handleFinished}
+        onError={() => {
+          console.warn('Video element load error in HireVideoOverlay, finishing video stage smoothly');
+          handleFinished();
+        }}
         className="w-full h-full object-cover absolute inset-0"
         style={{ width: '100vw', height: '100vh', objectFit: 'cover' }}
-      />
+      >
+        <source src={activeVideoSrc} type="video/mp4" />
+        <source src={DEFAULT_DESKTOP_VIDEO} type="video/mp4" />
+      </video>
 
       {/* Subtle Top Floating Controls & Broadcast Info */}
       <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center justify-between z-10">
@@ -122,7 +128,7 @@ export const HireVideoOverlay: React.FC<HireVideoOverlayProps> = ({
           </div>
           <div>
             <h3 className="text-xs sm:text-base font-black text-white flex items-center gap-2">
-              <span>{clientName ? `🎉 ${clientName} Just Hired Dwip!` : '🎉 Hire Request Submitted!'}</span>
+              <span>{clientName ? `🎉 ${clientName} Just Hired Tamanna!` : '🎉 Hire Request Submitted!'}</span>
               <Sparkles className="w-4 h-4 text-amber-400" />
             </h3>
             <p className="text-[10px] sm:text-xs text-blue-300 font-medium">

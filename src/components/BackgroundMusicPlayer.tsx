@@ -121,6 +121,10 @@ export const BackgroundMusicPlayer: React.FC = () => {
         loop
         preload="auto"
         onEnded={() => setIsPlaying(false)}
+        onError={(e) => {
+          console.warn('Background music track failed to load or has unsupported format:', e);
+          setIsPlaying(false);
+        }}
       />
 
       {/* Floating Bottom-Left Audio Control Widget */}
