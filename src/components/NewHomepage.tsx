@@ -34,6 +34,7 @@ import {
   Upload
 } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
+import { RadialCustomizerMenu, CustomizerSettings, DEFAULT_CUSTOMIZER_SETTINGS } from './RadialCustomizerMenu';
 
 interface NewHomepageProps {
   onReplayIntro: () => void;
@@ -188,6 +189,33 @@ export const NewHomepage: React.FC<NewHomepageProps> = ({
   const [contactForm, setContactForm] = useState({ name: '', email: '', countryCode: '+91', phone: '', message: '' });
   const [formSuccess, setFormSuccess] = useState(false);
 
+  // Radial Customizer Settings State
+  const [isRadialOpen, setIsRadialOpen] = useState<boolean>(false);
+  const [customizerSettings, setCustomizerSettings] = useState<CustomizerSettings>(() => {
+    try {
+      const saved = localStorage.getItem('artfolio_customizer_settings');
+      if (saved) return { ...DEFAULT_CUSTOMIZER_SETTINGS, ...JSON.parse(saved) };
+    } catch (e) {}
+    return DEFAULT_CUSTOMIZER_SETTINGS;
+  });
+
+  const handleUpdateCustomizerSettings = (newSettings: Partial<CustomizerSettings>) => {
+    setCustomizerSettings((prev) => {
+      const updated = { ...prev, ...newSettings };
+      try {
+        localStorage.setItem('artfolio_customizer_settings', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const handleResetCustomizerSettings = () => {
+    setCustomizerSettings(DEFAULT_CUSTOMIZER_SETTINGS);
+    try {
+      localStorage.setItem('artfolio_customizer_settings', JSON.stringify(DEFAULT_CUSTOMIZER_SETTINGS));
+    } catch (e) {}
+  };
+
   // Hero avatar & flower convergence states
   const heroAvatarRef = React.useRef<HTMLDivElement | null>(null);
   const [flowerAnimState, setFlowerAnimState] = useState<'idle' | 'glowing' | 'converging' | 'shattering'>('idle');
@@ -200,9 +228,9 @@ export const NewHomepage: React.FC<NewHomepageProps> = ({
   const rawSecondary = config.secondaryHeroImage || '';
   const secondaryImage = (rawSecondary && !rawSecondary.includes('unsplash.com')) ? rawSecondary : '';
 
-  const currentDisplayImage = showSecondaryImage
-    ? (secondaryImage || primaryImage)
-    : primaryImage;
+  const currentDisplayImage = (showSecondaryImage && secondaryImage)
+    ? secondaryImage
+    : (primaryImage || config.heroImage || config.introAvatarUrl || '');
 
   const handleHeroAvatarClick = () => {
     if (flowerAnimState !== 'idle') return;
@@ -355,72 +383,123 @@ export const NewHomepage: React.FC<NewHomepageProps> = ({
     setContactForm({ name: '', email: '', countryCode: '+91', phone: '', message: '' });
   };
 
+  // Dynamic Styling Helpers from Customizer Settings
+  const fontClass = customizerSettings.fontPreset === 'serif'
+    ? 'font-serif'
+    : customizerSettings.fontPreset === 'sans'
+    ? 'font-sans'
+    : customizerSettings.fontPreset === 'script'
+    ? 'font-[Dancing_Script,cursive]'
+    : 'font-mono';
+
+  let themeBgClass = isDark ? 'bg-[#120e14] text-rose-50' : 'bg-[#fdf8f9] text-stone-800';
+  if (customizerSettings.themePreset === 'midnight') themeBgClass = 'bg-[#0b0f19] text-indigo-50';
+  else if (customizerSettings.themePreset === 'cyber') themeBgClass = 'bg-[#0d021a] text-fuchsia-50';
+  else if (customizerSettings.themePreset === 'sakura') themeBgClass = 'bg-[#1a0c16] text-pink-50';
+  else if (customizerSettings.themePreset === 'emerald') themeBgClass = 'bg-[#041512] text-emerald-50';
+  else if (customizerSettings.themePreset === 'sunset') themeBgClass = 'bg-[#170b09] text-amber-50';
+  else if (customizerSettings.themePreset === 'light') themeBgClass = 'bg-[#fff8f9] text-rose-950';
+
+  let frameStyleExtra = '';
+  if (customizerSettings.frameStyle === 'pulse') {
+    frameStyleExtra = 'ring-4 ring-rose-400/90 shadow-[0_0_30px_rgba(244,114,182,0.6)]';
+  } else if (customizerSettings.frameStyle === 'gold') {
+    frameStyleExtra = 'ring-8 ring-amber-400 shadow-[0_0_35px_rgba(251,191,36,0.7)]';
+  } else if (customizerSettings.frameStyle === 'cyber') {
+    frameStyleExtra = 'ring-4 ring-cyan-400 shadow-[0_0_40px_rgba(6,182,212,0.8)]';
+  } else if (customizerSettings.frameStyle === 'floral') {
+    frameStyleExtra = 'ring-8 ring-pink-400 border-4 border-dashed border-pink-300 shadow-[0_0_30px_rgba(244,114,182,0.5)]';
+  } else if (customizerSettings.frameStyle === 'minimal') {
+    frameStyleExtra = 'ring-2 ring-stone-300 dark:ring-rose-800/80';
+  }
+
   return (
-    <div className={`min-h-screen font-sans transition-colors duration-300 relative overflow-x-hidden ${
-      isDark ? 'bg-[#120e14] text-rose-50' : 'bg-[#fdf8f9] text-stone-800'
-    }`}>
-      {/* Floating Animated Flowers / Sakura Petals Layer */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-10 opacity-70 sm:opacity-85">
-        {FLOWER_NODES.map((fl) => {
-          let animClass = fl.type % 2 === 0 ? 'animate-float-flower-1' : 'animate-float-flower-2';
-          let styleObj: React.CSSProperties = {
-            position: 'absolute',
-            top: `${fl.top}%`,
-            left: `${fl.left}%`,
-            animationDuration: `${fl.speed}s`,
-            animationDelay: `${fl.delay}s`,
-            transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
-          };
+    <div className={`min-h-screen transition-colors duration-300 relative overflow-x-hidden ${fontClass} ${themeBgClass}`}>
+      {/* Floating Animated Flowers / Stars / Particles Layer */}
+      {customizerSettings.particlesEnabled && (
+        <div className="fixed inset-0 pointer-events-none overflow-hidden z-10 opacity-70 sm:opacity-85">
+          {FLOWER_NODES.map((fl) => {
+            let animClass = fl.type % 2 === 0 ? 'animate-float-flower-1' : 'animate-float-flower-2';
+            if (customizerSettings.particleSpeed === 'orbit') {
+              animClass += ' animate-orbit-spin';
+            }
 
-          if (flowerAnimState === 'glowing') {
-            animClass += ' animate-flower-glow';
-            styleObj.filter = 'drop-shadow(0 0 20px #fb7185) brightness(2.2)';
-            styleObj.transform = 'scale(1.5)';
-          } else if (flowerAnimState === 'converging') {
-            animClass = '';
-            
-            // Calculate exact vector to the photo avatar center
-            const targetX = avatarCenterPoint ? avatarCenterPoint.x : window.innerWidth * 0.3;
-            const targetY = avatarCenterPoint ? avatarCenterPoint.y : window.innerHeight * 0.35;
-            const currentX = (fl.left / 100) * window.innerWidth;
-            const currentY = (fl.top / 100) * window.innerHeight;
-            const dx = targetX - currentX;
-            const dy = targetY - currentY;
+            let speedVal = fl.speed;
+            if (customizerSettings.particleSpeed === 'slow') speedVal = fl.speed * 1.8;
+            else if (customizerSettings.particleSpeed === 'fast') speedVal = fl.speed * 0.5;
 
-            styleObj.transform = `translate(${dx}px, ${dy}px) scale(0.08) rotate(1080deg)`;
-            styleObj.transition = 'transform 0.55s cubic-bezier(0.5, 0, 0.7, 0.2), opacity 0.55s ease-in';
-            styleObj.opacity = 1;
-            styleObj.filter = 'drop-shadow(0 0 25px #f472b6) brightness(2.8)';
-          } else if (flowerAnimState === 'shattering') {
-            animClass = '';
-            styleObj.opacity = 0;
-            styleObj.transform = 'scale(0)';
-            styleObj.transition = 'all 0.25s ease-out';
-          }
+            let styleObj: React.CSSProperties = {
+              position: 'absolute',
+              top: `${fl.top}%`,
+              left: `${fl.left}%`,
+              animationDuration: `${speedVal}s`,
+              animationDelay: `${fl.delay}s`,
+              transition: 'all 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
+            };
 
-          return (
-            <div key={`flower-node-${fl.id}`} className={animClass} style={styleObj}>
-              {fl.type === 0 ? (
-                <svg width={fl.size} height={fl.size} viewBox="0 0 24 24" fill="#f472b6" className="drop-shadow-sm opacity-85">
-                  <path d="M12 2C12 2 13.5 7 17 8.5C20.5 10 22 12 22 12C22 12 17 13.5 15.5 17C14 20.5 12 22 12 22C12 22 10.5 17 7 15.5C3.5 14 2 12 2 12C2 12 7 10.5 8.5 7C10 3.5 12 2 12 2Z" />
-                </svg>
-              ) : fl.type === 1 ? (
-                <svg width={fl.size} height={fl.size} viewBox="0 0 24 24" fill="#fb7185" className="drop-shadow-sm opacity-90">
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                </svg>
-              ) : (
-                <svg width={fl.size} height={fl.size} viewBox="0 0 24 24" fill="#fda4af" className="drop-shadow-sm opacity-80">
-                  <circle cx="12" cy="7" r="4" />
-                  <circle cx="17" cy="12" r="4" />
-                  <circle cx="12" cy="17" r="4" />
-                  <circle cx="7" cy="12" r="4" />
-                  <circle cx="12" cy="12" r="3" fill="#f59e0b" />
-                </svg>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            if (flowerAnimState === 'glowing') {
+              animClass += ' animate-flower-glow';
+              styleObj.filter = 'drop-shadow(0 0 20px #fb7185) brightness(2.2)';
+              styleObj.transform = 'scale(1.5)';
+            } else if (flowerAnimState === 'converging') {
+              animClass = '';
+              const targetX = avatarCenterPoint ? avatarCenterPoint.x : window.innerWidth * 0.3;
+              const targetY = avatarCenterPoint ? avatarCenterPoint.y : window.innerHeight * 0.35;
+              const currentX = (fl.left / 100) * window.innerWidth;
+              const currentY = (fl.top / 100) * window.innerHeight;
+              const dx = targetX - currentX;
+              const dy = targetY - currentY;
+
+              styleObj.transform = `translate(${dx}px, ${dy}px) scale(0.08) rotate(1080deg)`;
+              styleObj.transition = 'transform 0.55s cubic-bezier(0.5, 0, 0.7, 0.2), opacity 0.55s ease-in';
+              styleObj.opacity = 1;
+              styleObj.filter = 'drop-shadow(0 0 25px #f472b6) brightness(2.8)';
+            } else if (flowerAnimState === 'shattering') {
+              animClass = '';
+              styleObj.opacity = 0;
+              styleObj.transform = 'scale(0)';
+              styleObj.transition = 'all 0.25s ease-out';
+            }
+
+            return (
+              <div key={`flower-node-${fl.id}`} className={animClass} style={styleObj}>
+                {customizerSettings.particleType === 'stars' ? (
+                  <svg width={fl.size} height={fl.size} viewBox="0 0 24 24" fill="#fde047" className="drop-shadow-md opacity-90">
+                    <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9" />
+                  </svg>
+                ) : customizerSettings.particleType === 'hearts' ? (
+                  <svg width={fl.size} height={fl.size} viewBox="0 0 24 24" fill="#fb7185" className="drop-shadow-md opacity-90">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                  </svg>
+                ) : customizerSettings.particleType === 'sparkles' ? (
+                  <svg width={fl.size} height={fl.size} viewBox="0 0 24 24" fill="#38bdf8" className="drop-shadow-md opacity-90">
+                    <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+                  </svg>
+                ) : (
+                  // Default Flowers / Sakura Blossoms
+                  fl.type === 0 ? (
+                    <svg width={fl.size} height={fl.size} viewBox="0 0 24 24" fill="#f472b6" className="drop-shadow-sm opacity-85">
+                      <path d="M12 2C12 2 13.5 7 17 8.5C20.5 10 22 12 22 12C22 12 17 13.5 15.5 17C14 20.5 12 22 12 22C12 22 10.5 17 7 15.5C3.5 14 2 12 2 12C2 12 7 10.5 8.5 7C10 3.5 12 2 12 2Z" />
+                    </svg>
+                  ) : fl.type === 1 ? (
+                    <svg width={fl.size} height={fl.size} viewBox="0 0 24 24" fill="#fb7185" className="drop-shadow-sm opacity-90">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                  ) : (
+                    <svg width={fl.size} height={fl.size} viewBox="0 0 24 24" fill="#fda4af" className="drop-shadow-sm opacity-80">
+                      <circle cx="12" cy="7" r="4" />
+                      <circle cx="17" cy="12" r="4" />
+                      <circle cx="12" cy="17" r="4" />
+                      <circle cx="7" cy="12" r="4" />
+                      <circle cx="12" cy="12" r="3" fill="#f59e0b" />
+                    </svg>
+                  )
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Radial Shatter Particle Shockwave Overlay (Positioned at Photo Center) */}
       {flowerAnimState === 'shattering' && avatarCenterPoint && (
@@ -526,16 +605,16 @@ export const NewHomepage: React.FC<NewHomepageProps> = ({
             <div className="relative w-56 h-56 sm:w-64 sm:h-64 lg:w-80 lg:h-80 shrink-0 group">
               
               {/* Soft Floral Background Ring Glow */}
-              <div className={`absolute -inset-4 rounded-full bg-gradient-to-tr from-rose-300 via-pink-400 to-rose-500 opacity-60 blur-xl transition-all duration-300 ${
-                flowerAnimState !== 'idle' ? 'scale-125 opacity-100 blur-2xl' : 'animate-pulse'
+              <div className={`absolute -inset-4 rounded-full bg-gradient-to-tr from-rose-300 via-pink-400 to-rose-500 blur-xl transition-all duration-300 ${
+                flowerAnimState !== 'idle' ? 'scale-125 opacity-100 blur-2xl' : 'opacity-60'
               }`} />
               
               {/* Circular Main Frame (Clickable for Magical Converge Animation) */}
               <div
                 ref={heroAvatarRef}
                 onClick={handleHeroAvatarClick}
-                className={`relative w-full h-full rounded-full border-4 sm:border-8 border-white dark:border-rose-950/80 shadow-2xl overflow-hidden cursor-pointer bg-rose-100/50 dark:bg-rose-950/40 transition-all duration-300 active:scale-95 ${
-                  flowerAnimState === 'shattering' ? 'scale-110 ring-8 ring-rose-400 shadow-[0_0_50px_rgba(244,114,182,0.8)]' : 'hover:scale-[1.03]'
+                className={`relative w-full h-full rounded-full border-4 sm:border-8 border-white dark:border-rose-950/80 shadow-2xl overflow-hidden cursor-pointer bg-rose-100/50 dark:bg-rose-950/40 transition-all duration-300 active:scale-95 ${frameStyleExtra} ${
+                  flowerAnimState === 'shattering' ? 'scale-110 ring-8 ring-rose-400 shadow-[0_0_50px_rgba(244,114,182,0.8)]' : ''
                 }`}
                 title="Tap image for flower convergence & image reveal!"
               >
@@ -558,30 +637,33 @@ export const NewHomepage: React.FC<NewHomepageProps> = ({
                       src={currentDisplayImage}
                       alt={artistName}
                       onError={() => setIsImageError(true)}
-                      className={`w-full h-full object-cover transition-all duration-500 ${
-                        flowerAnimState === 'shattering' ? 'scale-110 brightness-150 blur-xs' : 'scale-100 brightness-100'
+                      className={`w-full h-full object-cover transition-all duration-300 ${
+                        flowerAnimState === 'shattering' ? 'scale-105 brightness-110' : 'scale-100 brightness-100'
                       }`}
                     />
                     
                     {/* Overlay Hover Prompt for Tap Animation */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center text-white backdrop-blur-[2px]">
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center text-white">
                       <Sparkles className="w-7 h-7 text-rose-300 animate-spin" />
                       <span className="text-xs font-bold mt-1 drop-shadow-md">
                         Tap for Flower Magic!
-                      </span>
-                      <span className="text-[10px] text-rose-200 opacity-90 mt-0.5">
-                        {showSecondaryImage ? '(Showing 2nd Image)' : '(Showing 1st Image)'}
                       </span>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Paintbrush Palette Badge (Bottom Right) */}
-              <div className="absolute bottom-2 right-2 flex items-center gap-2 z-20">
-                <div className="bg-white/90 dark:bg-rose-900/90 backdrop-blur-md p-2.5 sm:p-3 rounded-full shadow-xl border border-rose-200 dark:border-rose-800">
-                  <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500" />
-                </div>
+              {/* Paintbrush Palette Badge (Bottom Right - Opens Radial Customizer Menu) */}
+              <div className="absolute bottom-2 right-2 flex items-center gap-2 z-30">
+                <RadialCustomizerMenu
+                  isRadialOpen={isRadialOpen}
+                  onToggleRadial={() => setIsRadialOpen((prev) => !prev)}
+                  onCloseRadial={() => setIsRadialOpen(false)}
+                  settings={customizerSettings}
+                  onUpdateSettings={handleUpdateCustomizerSettings}
+                  onResetSettings={handleResetCustomizerSettings}
+                  onTriggerMagicFX={handleHeroAvatarClick}
+                />
               </div>
 
             </div>

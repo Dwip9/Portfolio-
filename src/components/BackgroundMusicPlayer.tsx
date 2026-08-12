@@ -57,7 +57,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
             audioRef.current.play().then(() => {
               setIsPlaying(true);
               setIsAutoplayBlocked(false);
-            }).catch((e) => console.error('Play on gesture failed:', e));
+            }).catch((e) => console.warn('Play on gesture prevented by browser:', e));
           }
           window.removeEventListener('click', handleUserGesture);
           window.removeEventListener('keydown', handleUserGesture);
@@ -85,7 +85,7 @@ export const BackgroundMusicPlayer: React.FC = () => {
         setIsPlaying(true);
         setIsAutoplayBlocked(false);
       } catch (err) {
-        console.error('Failed to play audio:', err);
+        console.warn('Failed to play audio:', err);
       }
     }
   };

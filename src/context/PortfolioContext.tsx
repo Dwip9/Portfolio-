@@ -264,14 +264,15 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const initConfig = async () => {
       try {
         const snap = await getDoc(docRef);
-        if (!snap.exists()) {
-          await setDoc(docRef, defaultConfig);
-        } else {
+        if (snap.exists()) {
           const processed = await resolveConfigWithLocalAssets(snap.data());
           setConfig(processed);
+        } else {
+          setConfig(defaultConfig);
         }
       } catch (err) {
         console.warn('Firestore config read offline fallback:', err);
+        setConfig(defaultConfig);
       }
     };
     initConfig();
@@ -300,14 +301,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       projCol,
       async (snap) => {
         if (snap.empty) {
-          try {
-            for (const proj of PROJECTS_LIST) {
-              const { id, ...data } = proj;
-              await setDoc(doc(db, 'projects', id), data);
-            }
-          } catch (e) {
-            console.warn('Could not populate default projects:', e);
-          }
+          setProjects(PROJECTS_LIST);
         } else {
           const list: Project[] = await Promise.all(
             snap.docs.map(async (docSnap) => {
@@ -333,6 +327,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       },
       (error) => {
         handleFirestoreError(error, OperationType.LIST, 'projects');
+        setProjects(PROJECTS_LIST);
       }
     );
 
@@ -532,10 +527,24 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       }
 
-      await setDoc(docRef, payload, { merge: true });
+      // Save doc with timeout safety
+      const saveDocWithTimeout = async () => {
+        await setDoc(docRef, payload, { merge: true });
+      };
+
+      try {
+        await Promise.race([
+          saveDocWithTimeout(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Doc set timeout')), 3000))
+        ]);
+      } catch (err) {
+        console.warn('Firestore doc set skipped or timed out, operating with local state:', err);
+      }
+
       setConfig(newConfig);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'settings/config');
+      setConfig(newConfig);
     }
   };
 

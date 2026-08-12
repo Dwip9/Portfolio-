@@ -1,6 +1,7 @@
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { saveLargeAsset, getLargeAsset, deleteLargeAsset } from './storageHelper';
+import { compressImageBase64 } from './imageCompressor';
 
 const CHUNK_SIZE = 700000; // 700 KB per chunk (safely under Firestore 1MB document limit)
 
@@ -10,21 +11,31 @@ export async function saveCloudAsset(key: string, value: string): Promise<void> 
     return;
   }
 
-  // 1. Save locally in IndexedDB for immediate local availability
-  await saveLargeAsset(key, value);
+  // 1. Compress image base64 if it's an uncompressed photo data URL
+  let processedValue = value;
+  if (typeof value === 'string' && value.startsWith('data:image/')) {
+    try {
+      processedValue = await compressImageBase64(value, 1200, 0.82);
+    } catch (e) {
+      console.warn('Image compression fallback:', e);
+    }
+  }
 
-  // 2. Upload to Firestore media collection so ALL users across the world can fetch it
-  try {
+  // 2. Save locally in IndexedDB for immediate local availability
+  await saveLargeAsset(key, processedValue);
+
+  // 3. Upload to Firestore media collection with safety timeout so UI never hangs
+  const uploadToFirestore = async () => {
     const mainDocRef = doc(db, 'media', key);
     
-    if (value.length <= CHUNK_SIZE) {
+    if (processedValue.length <= CHUNK_SIZE) {
       await setDoc(mainDocRef, {
         chunksCount: 1,
-        data: value,
+        data: processedValue,
         updatedAt: Date.now()
       });
     } else {
-      const chunksCount = Math.ceil(value.length / CHUNK_SIZE);
+      const chunksCount = Math.ceil(processedValue.length / CHUNK_SIZE);
       await setDoc(mainDocRef, {
         chunksCount,
         data: 'CHUNKED',
@@ -32,13 +43,20 @@ export async function saveCloudAsset(key: string, value: string): Promise<void> 
       });
 
       for (let i = 0; i < chunksCount; i++) {
-        const chunkStr = value.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+        const chunkStr = processedValue.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
         const chunkDocRef = doc(db, 'media', `${key}_chunk_${i}`);
         await setDoc(chunkDocRef, { chunk: chunkStr });
       }
     }
+  };
+
+  try {
+    await Promise.race([
+      uploadToFirestore(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 3500))
+    ]);
   } catch (err) {
-    console.warn(`Failed to sync cloud asset '${key}' to Firestore:`, err);
+    console.warn(`Asset '${key}' saved in local storage (Firestore sync timed out or skipped):`, err);
   }
 }
 
@@ -46,10 +64,6 @@ export async function getCloudAsset(key: string): Promise<string | null> {
   // 1. Check local IndexedDB cache first
   const local = await getLargeAsset(key);
   if (local) {
-    // Background sync check to ensure Firestore Cloud Media DB has this asset for Netlify & external domain visitors
-    syncLocalAssetToCloud(key, local).catch((err) => {
-      console.warn(`Background cloud sync warning for '${key}':`, err);
-    });
     return local;
   }
 
@@ -88,41 +102,6 @@ export async function getCloudAsset(key: string): Promise<string | null> {
   }
 
   return null;
-}
-
-// Background sync helper: Ensures local assets exist in Firestore cloud DB so Netlify visitors get the photo
-async function syncLocalAssetToCloud(key: string, value: string): Promise<void> {
-  if (!value || value.length < 50) return;
-  try {
-    const mainDocRef = doc(db, 'media', key);
-    const snap = await getDoc(mainDocRef);
-    if (!snap.exists()) {
-      console.log(`Syncing local asset '${key}' to Firestore cloud storage...`);
-      if (value.length <= CHUNK_SIZE) {
-        await setDoc(mainDocRef, {
-          chunksCount: 1,
-          data: value,
-          updatedAt: Date.now()
-        });
-      } else {
-        const chunksCount = Math.ceil(value.length / CHUNK_SIZE);
-        await setDoc(mainDocRef, {
-          chunksCount,
-          data: 'CHUNKED',
-          updatedAt: Date.now()
-        });
-
-        for (let i = 0; i < chunksCount; i++) {
-          const chunkStr = value.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-          const chunkDocRef = doc(db, 'media', `${key}_chunk_${i}`);
-          await setDoc(chunkDocRef, { chunk: chunkStr });
-        }
-      }
-      console.log(`Successfully synced local asset '${key}' to Firestore Cloud Storage!`);
-    }
-  } catch (err) {
-    console.warn(`Failed background sync for '${key}':`, err);
-  }
 }
 
 export async function deleteCloudAsset(key: string): Promise<void> {

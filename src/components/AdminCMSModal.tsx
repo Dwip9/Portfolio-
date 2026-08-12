@@ -3,6 +3,7 @@ import { X, Save, Plus, Trash2, Edit3, Shield, Check, Image as ImageIcon, Layout
 import { usePortfolio, PortfolioConfig } from '../context/PortfolioContext';
 import { Project } from '../types';
 import { ImageCropperModal } from './ImageCropperModal';
+import { compressImageBase64 } from '../utils/imageCompressor';
 
 interface AdminCMSModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
     triggerHireVideoBroadcast
   } = usePortfolio();
   
-  const [activeTab, setActiveTab] = useState<'video' | 'projects' | 'admins'>('video');
+  const [activeTab, setActiveTab] = useState<'heroImages' | 'video' | 'projects' | 'admins' | 'theme'>('heroImages');
   const [inquirySearch, setInquirySearch] = useState('');
   const [formData, setFormData] = useState<PortfolioConfig>(config);
   const [isSaving, setIsSaving] = useState(false);
@@ -149,6 +150,45 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
         ...prev,
         mobileHireVideoUrl: base64,
         mobileHireVideoFileName: file.name
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleHeroImageDirectUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      alert('Image file size must be under 20MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const rawBase64 = event.target?.result as string;
+      const compressed = await compressImageBase64(rawBase64, 1200, 0.82);
+      setFormData((prev) => ({
+        ...prev,
+        heroImage: compressed,
+        introAvatarUrl: compressed
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSecondaryImageDirectUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      alert('Image file size must be under 20MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const rawBase64 = event.target?.result as string;
+      const compressed = await compressImageBase64(rawBase64, 1200, 0.82);
+      setFormData((prev) => ({
+        ...prev,
+        secondaryHeroImage: compressed
       }));
     };
     reader.readAsDataURL(file);
@@ -289,6 +329,18 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 p-3 bg-slate-900/60 border-b border-white/5 overflow-x-auto shrink-0 no-scrollbar">
           <button
+            onClick={() => setActiveTab('heroImages')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'heroImages'
+                ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 ring-2 ring-rose-400'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4 text-rose-300" />
+            <span>🖼️ Hero Photos (1st & 2nd Photo)</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('video')}
             className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'video'
@@ -332,6 +384,191 @@ export const AdminCMSModal: React.FC<AdminCMSModalProps> = ({ isOpen, onClose })
               <Check className="w-4 h-4 text-emerald-400" />
               <span>Settings successfully updated in Firebase Firestore!</span>
             </div>
+          )}
+
+          {/* 1. HERO PROFILE IMAGES UPLOAD TAB (PRIMARY FIRST TAB) */}
+          {activeTab === 'heroImages' && (
+            <form onSubmit={handleSaveConfig} className="space-y-6">
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-950/60 via-purple-950/40 to-slate-900 border border-rose-500/30">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-rose-600/30 border border-rose-400/50 flex items-center justify-center text-rose-300 shadow-md shrink-0">
+                    <ImageIcon className="w-5 h-5 text-rose-300" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                      Homepage Hero Profile Photos Upload <Sparkles className="w-4 h-4 text-amber-400" />
+                    </h3>
+                    <p className="text-xs text-rose-200/80 mt-0.5">
+                      Upload your 1st (Front Default Photo) and 2nd (Secondary Photo) directly from your computer or phone.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* 1st Image (Primary Front Photo) */}
+                <div className="p-5 rounded-2xl bg-slate-900/90 border-2 border-rose-500/40 shadow-xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-rose-600 text-white text-xs font-black flex items-center justify-center">1</span>
+                      <div>
+                        <h4 className="text-xs font-black text-white uppercase tracking-wide">1st Image (Primary Front Photo)</h4>
+                        <p className="text-[10px] text-slate-400">Main photo shown on homepage load</p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-extrabold border border-rose-500/30">
+                      Active Default
+                    </span>
+                  </div>
+
+                  {/* Live Image Preview */}
+                  <div className="relative w-full aspect-square max-w-[200px] mx-auto rounded-full overflow-hidden border-4 border-rose-500/60 shadow-2xl bg-slate-950 flex items-center justify-center group">
+                    {formData.heroImage ? (
+                      <img
+                        src={formData.heroImage}
+                        alt="1st Hero Photo"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 p-4 text-center text-slate-500">
+                        <ImageIcon className="w-8 h-8 opacity-40" />
+                        <span className="text-xs font-bold">No 1st Photo Selected</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-2 pt-2">
+                    <label className="block text-xs font-bold text-slate-300">Upload New 1st Photo File:</label>
+                    <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+                      <label className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:brightness-110 text-white text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all">
+                        <FileUp className="w-4 h-4" />
+                        <span>Choose 1st Photo File</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleHeroImageDirectUpload}
+                          className="hidden"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCropper('heroImage', 1, 'Crop 1st Front Profile Photo')}
+                        className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-rose-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0 transition-all"
+                      >
+                        <Crop className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Crop</span>
+                      </button>
+                    </div>
+
+                    <div className="pt-2">
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">Or Paste Image URL:</label>
+                      <input
+                        type="text"
+                        name="heroImage"
+                        value={formData.heroImage}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData((prev) => ({ ...prev, heroImage: val, introAvatarUrl: val }));
+                        }}
+                        placeholder="https://images.unsplash.com/..."
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2nd Image (Secondary Back / Alternate Photo) */}
+                <div className="p-5 rounded-2xl bg-slate-900/90 border-2 border-purple-500/40 shadow-xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-black flex items-center justify-center">2</span>
+                      <div>
+                        <h4 className="text-xs font-black text-white uppercase tracking-wide">2nd Image (Secondary / Alternate Photo)</h4>
+                        <p className="text-[10px] text-slate-400">Photo shown on toggle / flip</p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-extrabold border border-purple-500/30">
+                      Alternate Photo
+                    </span>
+                  </div>
+
+                  {/* Live Image Preview */}
+                  <div className="relative w-full aspect-square max-w-[200px] mx-auto rounded-full overflow-hidden border-4 border-purple-500/60 shadow-2xl bg-slate-950 flex items-center justify-center group">
+                    {formData.secondaryHeroImage ? (
+                      <img
+                        src={formData.secondaryHeroImage}
+                        alt="2nd Hero Photo"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 p-4 text-center text-slate-500">
+                        <ImageIcon className="w-8 h-8 opacity-40" />
+                        <span className="text-xs font-bold">No 2nd Photo Selected</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-2 pt-2">
+                    <label className="block text-xs font-bold text-slate-300">Upload New 2nd Photo File:</label>
+                    <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+                      <label className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all">
+                        <FileUp className="w-4 h-4" />
+                        <span>Choose 2nd Photo File</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleSecondaryImageDirectUpload}
+                          className="hidden"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCropper('secondaryHeroImage', 1, 'Crop 2nd Alternate Profile Photo')}
+                        className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-purple-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0 transition-all"
+                      >
+                        <Crop className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Crop</span>
+                      </button>
+                    </div>
+
+                    <div className="pt-2">
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">Or Paste Image URL:</label>
+                      <input
+                        type="text"
+                        name="secondaryHeroImage"
+                        value={formData.secondaryHeroImage || ''}
+                        onChange={handleChange}
+                        placeholder="https://images.unsplash.com/..."
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Save Button Bar */}
+              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
+                <div>
+                  <h5 className="text-xs font-bold text-white">Save Photo Changes</h5>
+                  <p className="text-[10px] text-slate-400">Click save to update both photos in Firebase Firestore live.</p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-rose-600 to-purple-600 hover:brightness-110 text-white font-extrabold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-rose-600/30 transition-all shrink-0"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSaving ? 'Saving to Database...' : 'Save Photos Now'}</span>
+                </button>
+              </div>
+            </form>
           )}
 
           {/* 0. WEBSITE THEME TAB */}

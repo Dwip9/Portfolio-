@@ -50,32 +50,39 @@ export const ArtistIntroOverlay: React.FC<ArtistIntroOverlayProps> = ({ onFinish
     ? (mobileVid || introVid || desktopVid || DEFAULT_SAMPLE_MOBILE_VIDEO)
     : (desktopVid || introVid || mobileVid || DEFAULT_SAMPLE_DESKTOP_VIDEO);
 
-  const [videoSrc, setVideoSrc] = useState<string>('');
+  const [videoSrc, setVideoSrc] = useState<string>(rawVideoUrl || DEFAULT_SAMPLE_DESKTOP_VIDEO);
 
   // Convert Base64 data URL to Blob Object URL for instant smooth video streaming
   useEffect(() => {
-    if (!rawVideoUrl) return;
+    if (!rawVideoUrl) {
+      setVideoSrc(DEFAULT_SAMPLE_DESKTOP_VIDEO);
+      return;
+    }
     if (rawVideoUrl.startsWith('data:video/')) {
       try {
         const parts = rawVideoUrl.split(',');
-        const mimeMatch = parts[0].match(/:(.*?);/);
-        const mime = mimeMatch ? mimeMatch[1] : 'video/mp4';
-        const bstr = atob(parts[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
-        }
-        const blob = new Blob([u8arr], { type: mime });
-        const blobUrl = URL.createObjectURL(blob);
-        setVideoSrc(blobUrl);
+        if (parts.length > 1 && parts[1]) {
+          const mimeMatch = parts[0].match(/:(.*?);/);
+          const mime = mimeMatch ? mimeMatch[1] : 'video/mp4';
+          const bstr = atob(parts[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          const blob = new Blob([u8arr], { type: mime });
+          const blobUrl = URL.createObjectURL(blob);
+          setVideoSrc(blobUrl);
 
-        return () => {
-          URL.revokeObjectURL(blobUrl);
-        };
+          return () => {
+            URL.revokeObjectURL(blobUrl);
+          };
+        } else {
+          setVideoSrc(DEFAULT_SAMPLE_DESKTOP_VIDEO);
+        }
       } catch (err) {
-        console.warn('Failed to convert base64 video to blob URL:', err);
-        setVideoSrc(rawVideoUrl);
+        console.warn('Failed to convert base64 video to blob URL, falling back:', err);
+        setVideoSrc(DEFAULT_SAMPLE_DESKTOP_VIDEO);
       }
     } else {
       setVideoSrc(rawVideoUrl);
@@ -93,7 +100,11 @@ export const ArtistIntroOverlay: React.FC<ArtistIntroOverlayProps> = ({ onFinish
   // Reload video whenever videoSrc changes
   useEffect(() => {
     if (videoSrc && videoRef.current) {
-      videoRef.current.load();
+      try {
+        videoRef.current.load();
+      } catch (e) {
+        // ignore load errors
+      }
     }
   }, [videoSrc]);
 
@@ -139,10 +150,10 @@ export const ArtistIntroOverlay: React.FC<ArtistIntroOverlayProps> = ({ onFinish
               videoRef.current.muted = true;
               setIsMuted(true);
               videoRef.current.play().catch((err2) => {
-                console.error('Video play failed completely:', err2);
+                console.warn('Video play prevented or unsupported, transitioning smoothly to website:', err2);
                 setTimeout(() => {
                   handleFinishIntro();
-                }, 1200);
+                }, 800);
               });
             }
           });

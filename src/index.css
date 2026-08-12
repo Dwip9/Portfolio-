@@ -595,3 +595,63 @@ footer,
   will-change: transform, opacity;
   animation: waterDropRipple 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
+
+/* ===================================================
+   RADIAL CUSTOMIZER ANIMATIONS
+   =================================================== */
+@keyframes radialPopIn {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.3) rotate(-90deg);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(var(--tx, 0), var(--ty, 0)) scale(1.15) rotate(10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(var(--tx, 0), var(--ty, 0)) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 12s linear infinite;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes orbitSpin {
+  0% {
+    transform: rotate(0deg) translateY(-8px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateY(-8px) rotate(-360deg);
+  }
+}
+
+.animate-orbit-spin {
+  animation: orbitSpin 8s linear infinite;
+}
+

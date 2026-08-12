@@ -104,7 +104,10 @@ export const HireVideoOverlay: React.FC<HireVideoOverlayProps> = ({
           if (videoRef.current) {
             videoRef.current.muted = true;
             setIsMuted(true);
-            videoRef.current.play().catch(console.error);
+            videoRef.current.play().catch((err2) => {
+              console.warn('HireVideoOverlay video playback restricted or failed, proceeding:', err2);
+              handleFinished();
+            });
           }
         });
       }
