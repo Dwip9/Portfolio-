@@ -20,6 +20,7 @@ import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { PROFILE_DATA, PROJECTS_LIST } from '../data/portfolioData';
 import { Project } from '../types';
 import { saveCloudAsset, getCloudAsset, deleteCloudAsset } from '../utils/cloudStorage';
+import { compressImageBase64 } from '../utils/imageCompressor';
 
 export interface PortfolioConfig {
   theme?: 'dynamic' | 'minimal';
@@ -256,6 +257,16 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         merged.introAvatarUrl = merged.heroImage;
       } else if (merged.introAvatarUrl && merged.introAvatarUrl.length > 50 && !merged.heroImage) {
         merged.heroImage = merged.introAvatarUrl;
+      }
+
+      // Auto-sync image to Firestore live config if local/resolved image is available
+      if (merged.heroImage && merged.heroImage.startsWith('data:image/') && data.heroImage !== merged.heroImage) {
+        setDoc(docRef, {
+          heroImage: merged.heroImage,
+          introAvatarUrl: merged.introAvatarUrl || merged.heroImage,
+          name: merged.name || 'Tamanna',
+          footerName: merged.footerName || 'TAMANNA'
+        }, { merge: true }).catch((err) => console.warn('Auto-sync live notice:', err));
       }
 
       return merged;
@@ -503,13 +514,21 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ];
 
       for (const item of assetKeys) {
-        const val = newConfig[item.field] as string | undefined;
+        let val = newConfig[item.field] as string | undefined;
         if (val) {
-          if (val.startsWith('data:') || val.length > 20000) {
-            await saveCloudAsset(item.key, val);
-            (payload[item.field] as any) = 'CLOUD_STORAGE';
-          } else {
+          if (val.startsWith('data:image/')) {
+            val = await compressImageBase64(val, 1000, 0.78);
+            (newConfig[item.field] as any) = val;
+          }
+
+          // Cache locally in IndexedDB
+          await saveCloudAsset(item.key, val);
+
+          // Store directly in payload if size <= 350KB so domain visitors get it instantly
+          if (val.length <= 350000) {
             (payload[item.field] as any) = val;
+          } else {
+            (payload[item.field] as any) = 'CLOUD_STORAGE';
           }
         } else {
           await deleteCloudAsset(item.key);
@@ -517,31 +536,14 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       }
 
-      // Safety check: Offload ANY other string property in payload if > 20KB or data:
-      for (const key of Object.keys(payload) as Array<keyof PortfolioConfig>) {
-        const val = payload[key];
-        if (typeof val === 'string' && (val.startsWith('data:') || val.length > 20000)) {
-          console.warn(`Offloading large string field '${key}' to Cloud Storage`);
-          await saveCloudAsset(`asset_${key}`, val);
-          (payload[key] as any) = 'CLOUD_STORAGE';
-        }
+      // Ensure heroImage and introAvatarUrl are synchronized
+      if (payload.heroImage && payload.heroImage.startsWith('data:image/') && (!payload.introAvatarUrl || payload.introAvatarUrl === 'CLOUD_STORAGE')) {
+        payload.introAvatarUrl = payload.heroImage;
       }
 
-      // Save doc with timeout safety
-      const saveDocWithTimeout = async () => {
-        await setDoc(docRef, payload, { merge: true });
-      };
-
-      try {
-        await Promise.race([
-          saveDocWithTimeout(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Doc set timeout')), 3000))
-        ]);
-      } catch (err) {
-        console.warn('Firestore doc set skipped or timed out, operating with local state:', err);
-      }
-
+      await setDoc(docRef, payload, { merge: true });
       setConfig(newConfig);
+      console.log('Saved configuration directly to Firestore live database!');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'settings/config');
       setConfig(newConfig);
@@ -553,20 +555,17 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const projCol = collection(db, 'projects');
       const payload = { ...projectData };
-      const tempId = `proj_new_${Date.now()}`;
-      if (payload.image && (payload.image.startsWith('data:') || payload.image.length > 20000)) {
-        await saveCloudAsset(`proj_${tempId}_image`, payload.image);
-        payload.image = 'CLOUD_STORAGE';
-      }
-      const docRef = await addDoc(projCol, payload);
-      // Migrate asset key if needed
-      if (payload.image === 'CLOUD_STORAGE') {
-        const fullImg = await getCloudAsset(`proj_${tempId}_image`);
-        if (fullImg) {
-          await saveCloudAsset(`proj_${docRef.id}_image`, fullImg);
-          await deleteCloudAsset(`proj_${tempId}_image`);
+      if (payload.image && payload.image.startsWith('data:image/')) {
+        const compressed = await compressImageBase64(payload.image, 1000, 0.78);
+        if (compressed.length <= 350000) {
+          payload.image = compressed;
+        } else {
+          const tempId = `proj_new_${Date.now()}`;
+          await saveCloudAsset(`proj_${tempId}_image`, compressed);
+          payload.image = 'CLOUD_STORAGE';
         }
       }
+      await addDoc(projCol, payload);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'projects');
     }
@@ -577,9 +576,14 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const projRef = doc(db, 'projects', id);
       const payload = { ...projectData };
-      if (payload.image && (payload.image.startsWith('data:') || payload.image.length > 20000)) {
-        await saveCloudAsset(`proj_${id}_image`, payload.image);
-        payload.image = 'CLOUD_STORAGE';
+      if (payload.image && payload.image.startsWith('data:image/')) {
+        const compressed = await compressImageBase64(payload.image, 1000, 0.78);
+        if (compressed.length <= 350000) {
+          payload.image = compressed;
+        } else {
+          await saveCloudAsset(`proj_${id}_image`, compressed);
+          payload.image = 'CLOUD_STORAGE';
+        }
       }
       await updateDoc(projRef, payload);
     } catch (error) {

@@ -53,7 +53,7 @@ export async function saveCloudAsset(key: string, value: string): Promise<void> 
   try {
     await Promise.race([
       uploadToFirestore(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 3500))
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore write timeout')), 12000))
     ]);
   } catch (err) {
     console.warn(`Asset '${key}' saved in local storage (Firestore sync timed out or skipped):`, err);
